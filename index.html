@@ -1,0 +1,3762 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review Flow</title><style>
+  :root {
+  --bg: #edf2f8;
+  --panel: #f8fbff;
+  --panel-alt: #e8eef7;
+  --field-bg: #ffffff;
+  --border: #c8d2e2;
+  --text: #172231;
+  --muted: #4f6078;
+  --accent: #2e7de0;
+  --danger: #d95151;
+  --success: #2f9e5a;
+  --bg-gradient-start: #e8eff9;
+  --bg-gradient-end: #dce6f6;
+  --shadow: 0 12px 30px rgba(29, 45, 72, 0.12);
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  color: var(--text);
+  overflow: hidden;
+}
+
+select option {
+  color: var(--text);
+  background: var(--field-bg);
+}
+
+.rationale-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) 420px;
+  gap: 18px;
+  padding: 18px;
+}
+
+.rationale-content, .rationale-output-panel {
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+h1, h2, p { margin-top: 0; }
+h1 { font-size: 1.55rem; margin-bottom: 8px; }
+h1 span { color: var(--accent); }
+.subtitle, .panel-header p, .footer-note, .hint { color: var(--muted); font-size: 0.95rem; }
+
+.panel-header button,
+.output-actions button,
+.modal-header button {
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.panel-header button:hover,
+.output-actions button:hover,
+.modal-header button:hover { transform: translateY(-1px); border-color: var(--accent); }
+.primary { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 18%, transparent) !important; }
+.danger { background: rgba(255, 125, 125, 0.14) !important; border-color: rgba(255, 125, 125, 0.35) !important; }
+
+.rationale-content, .rationale-output-panel { padding: 22px; }
+.rationale-output-panel {
+  display: flex;
+  flex-direction: column;
+}
+.panel-header { margin-bottom: 18px; }
+.panel-header.split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.macro-toolbar {
+  position: fixed;
+  z-index: 25;
+  width: min(420px, calc(100vw - 24px));
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-alt);
+  box-shadow: 0 10px 26px rgba(16, 24, 40, 0.2);
+}
+
+.macro-toolbar-title {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.macro-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.macro-chip {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 19, 34, 0.42);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 20;
+}
+
+.settings-modal.open {
+  display: flex;
+}
+
+.settings-modal-card {
+  width: min(900px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.output-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.settings-danger-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.grid { display: grid; gap: 14px; margin-bottom: 14px; }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+label { display: block; margin-bottom: 14px; }
+label span, .label-title {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--field-bg);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font: inherit;
+}
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 100px; }
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pill {
+  border: 1px solid var(--border);
+  background: var(--field-bg);
+  border-radius: 999px;
+  padding: 10px 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  min-height: 48px;
+}
+.pill input { width: auto; }
+
+.hidden { display: none; }
+
+.settings-inline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.cifas-checks {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cifas-check-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 10px;
+  align-items: end;
+}
+
+.cifas-check-row label { margin: 0; }
+
+.cifas-check-action {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.cifas-check-action.remove {
+  border-color: rgba(255, 125, 125, 0.35);
+  background: rgba(255, 125, 125, 0.14);
+}
+
+.risk-factor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--field-bg);
+}
+
+.risk-factor-item .entry-text {
+  flex: 1 1 280px;
+  min-width: 220px;
+  color: var(--text);
+  background: var(--field-bg);
+}
+
+.settings-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.risk-factor-item button {
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.risk-factor-item button.btn-danger {
+  border-color: rgba(255, 125, 125, 0.35);
+  background: rgba(255, 125, 125, 0.14);
+}
+
+.settings-inline button,
+#copyBtn,
+#generateBtn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+select:focus,
+select:hover {
+  border-color: var(--accent);
+}
+
+.settings-list { display: grid; gap: 14px; }
+.switch-row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--field-bg);
+}
+.switch-row p { margin: 6px 0 0; }
+.switch-row input[type="checkbox"] { width: 22px; height: 22px; }
+
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel-alt);
+}
+
+.settings-group summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 700;
+}
+
+.settings-group summary::-webkit-details-marker { display: none; }
+
+.settings-group summary::after {
+  content: '▾';
+  float: right;
+}
+
+.settings-group[open] summary::after {
+  content: '▴';
+}
+
+.settings-group-content {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+#output {
+  min-height: 10vh;
+  font-family: Consolas, Menlo, Monaco, monospace;
+  line-height: 1.5;
+}
+
+.preview-shell {
+  margin-top: 12px;
+  padding: 14px;
+  min-height: 180px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--field-bg);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.preview-shell h1,
+.preview-shell h2,
+.preview-shell h3 {
+  margin: 0 0 8px;
+}
+
+.preview-shell p {
+  margin: 0 0 8px;
+}
+
+.preview-shell ul {
+  margin: 0 0 10px 20px;
+}
+
+.preview-shell li {
+  margin-bottom: 6px;
+}
+
+.md-bold { font-weight: 700; }
+.md-italic { font-style: italic; }
+.md-highlight-green {
+  background: color-mix(in srgb, var(--success) 26%, transparent);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+.md-highlight-red {
+  background: color-mix(in srgb, var(--danger) 26%, transparent);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+.md-highlight-amber {
+  background: color-mix(in srgb, #ffb000 30%, transparent);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+.md-highlight-accent {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+
+.md-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+@media (min-width: 1301px) {
+  .rationale-content, .rationale-output-panel { height: calc(100vh - 36px); }
+  .rationale-content { overflow-y: auto; }
+  .rationale-output-panel { overflow: hidden; }
+}
+
+@media (max-width: 1300px) {
+  body {
+    overflow: auto;
+  }
+
+  .rationale-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .rationale-content,
+  .rationale-output-panel {
+    height: auto;
+    overflow: visible;
+  }
+
+}
+
+@media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
+  .rationale-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .rationale-content, .rationale-output-panel {
+    height: auto;
+    overflow: visible;
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .output-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+  
+
+    :root {
+      --bg: #101114;
+      --panel: #181a20;
+      --panel-soft: #20232b;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --border: #2f3340;
+      --accent: #5eead4;
+      --accent-strong: #14b8a6;
+      --danger: #fb7185;
+      --warning: #facc15;
+      --success: #86efac;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  background: radial-gradient(circle at top left, rgba(94, 234, 212, 0.08), transparent 30%), var(--bg);
+  color: var(--text);
+}
+
+button, input, select, textarea { font: inherit; }
+button { border: 0; cursor: pointer; color: inherit; }
+
+.app-shell {
+  width: min(1500px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.title-block h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.title-block p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  max-width: 720px;
+}
+
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  z-index: 40;
+}
+
+.menu-panel .btn {
+  justify-content: flex-start;
+  border-radius: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.panel-soft {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.panel h2, .panel h3 {
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.panel h2 { font-size: 1.15rem; }
+.panel h3 { font-size: 1rem; }
+
+.stack { display: grid; gap: 14px; }
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.row.between { justify-content: space-between; }
+
+.field {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 120px;
+}
+
+label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--panel-soft);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+input[type="color"] {
+  height: 43px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.5);
+}
+
+.btn.primary {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #042f2e;
+  font-weight: 700;
+}
+
+.btn.danger {
+  background: rgba(251, 113, 133, 0.12);
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fecdd3;
+}
+
+.btn.warning {
+  background: rgba(250, 204, 21, 0.12);
+  border-color: rgba(250, 204, 21, 0.4);
+  color: #fef08a;
+}
+
+.btn.success {
+  background: rgba(134, 239, 172, 0.12);
+  border-color: rgba(134, 239, 172, 0.45);
+  color: #bbf7d0;
+}
+
+.btn.small {
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+.tracker-card {
+  text-align: center;
+  padding: 22px 20px 20px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(94, 234, 212, 0.12), rgba(20, 184, 166, 0.04)), var(--panel-soft);
+  border: 1px solid rgba(94, 234, 212, 0.24);
+}
+
+.timer-display {
+  margin: 5px 0 2px;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  font-weight: 900;
+  line-height: .95;
+  letter-spacing: -.07em;
+  font-variant-numeric: tabular-nums;
+}
+.timer-display.overdue { color: var(--danger); }
+.timer-progress { height: 7px; margin-top: 16px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.1); }
+.timer-progress-fill { height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .3s linear; }
+
+.tracker-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+}
+
+.timer-caption {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.tracker-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 680px;
+  margin: 16px auto 0;
+}
+
+.tracker-fact {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 12px;
+  border-left: 1px solid rgba(255, 255, 255, .1);
+}
+
+.tracker-fact:first-child { border-left: 0; }
+.tracker-fact-label { color: var(--muted); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.tracker-fact-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.tracker-meta {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 8px 0 6px;
+}
+
+.tracker-status { color: var(--muted); }
+
+.active-queue {
+  font-size: 1.1rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stats-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.stat .value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.stat .label {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-top: 2px;
+}
+
+.stat.good .value { color: var(--success); }
+.stat.bad .value { color: var(--danger); }
+.stat.warn .value { color: var(--warning); }
+
+.queue-list, .segment-list, .log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.log-list.single-output { max-height: min(68vh, 640px); }
+
+.completion-modal {
+  width: min(880px, calc(100vw - 28px));
+}
+
+.schedule-modal { width: min(980px, calc(100vw - 28px)); }
+.schedule-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 190px)) 1fr;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.schedule-summary { align-self: center; text-align: right; }
+.schedule-table { display: grid; gap: 8px; }
+.schedule-head, .schedule-row {
+  display: grid;
+  grid-template-columns: 42px minmax(180px, 1fr) 125px 125px 110px 88px;
+  gap: 10px;
+  align-items: center;
+}
+.schedule-head {
+  padding: 0 12px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.schedule-row {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+  box-shadow: inset 4px 0 var(--queue-color, var(--accent-strong));
+}
+.schedule-index { color: var(--muted); font-weight: 800; text-align: center; }
+.schedule-end { font-variant-numeric: tabular-nums; font-weight: 700; }
+.schedule-duration { color: var(--muted); font-size: .85rem; }
+.schedule-empty { padding: 30px; text-align: center; border: 1px dashed var(--border); border-radius: 14px; }
+
+.completion-modal .modal-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: min(86vh, 860px);
+}
+
+.completion-modal .log-list.single-output {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+.queue-card, .segment-card, .log-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 12px;
+  position: relative;
+}
+
+.queue-list > *, .segment-list > *, .log-list > * {
+  flex: 0 0 auto;
+}
+
+.queue-card, .segment-card {
+  overflow: hidden;
+}
+
+.log-card {
+  overflow: visible;
+  min-height: max-content;
+}
+
+.queue-card::before, .segment-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--queue-color, var(--accent-strong));
+}
+
+.queue-card.active, .segment-card.active {
+  border-color: rgba(94, 234, 212, 0.7);
+  background: rgba(94, 234, 212, 0.07);
+}
+
+.queue-card-title, .segment-title {
+  font-weight: 800;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.queue-meta, .segment-meta, .log-meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-top: 4px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.pill.good {
+  color: #bbf7d0;
+  border-color: rgba(134, 239, 172, 0.35);
+  background: rgba(134, 239, 172, 0.1);
+}
+
+.pill.bad {
+  color: #fecdd3;
+  border-color: rgba(251, 113, 133, 0.35);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.pill.warn {
+  color: #fef08a;
+  border-color: rgba(250, 204, 21, 0.35);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: var(--queue-color, var(--accent-strong));
+}
+
+
+.day-timeline {
+  display: flex;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+}
+
+.timeline-block {
+  min-width: 2px;
+  background: var(--queue-color, var(--accent-strong));
+  opacity: 0.9;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.timeline-label {
+  padding: 0 7px;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  white-space: nowrap;
+}
+
+.overview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.overview-heading h2 { margin-bottom: 0; }
+.expected-total {
+  color: var(--text);
+  background: rgba(94, 234, 212, .09);
+  border-color: rgba(94, 234, 212, .25);
+}
+
+.table-like { display: grid; gap: 8px; }
+
+.mini-table-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mini-table-row:last-child { border-bottom: 0; }
+
+.subtle {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.hidden { display: none !important; }
+.notification-status { line-height: 1.5; }
+.notification-status strong { color: var(--text); }
+.notification-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 100;
+  width: min(380px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid rgba(94, 234, 212, .45);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  animation: toast-in .2s ease-out;
+}
+.notification-toast-title { margin-bottom: 4px; font-weight: 800; }
+.notification-toast-message { color: var(--muted); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+
+.final-round {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 24px;
+  background:
+    repeating-linear-gradient(-12deg, transparent 0 18px, rgba(255, 255, 255, .035) 19px 21px),
+    radial-gradient(circle, rgba(239, 68, 68, .24), transparent 56%),
+    rgba(4, 5, 8, .88);
+  backdrop-filter: blur(6px);
+  animation: final-round-in .22s ease-out both;
+}
+
+.final-round::before,
+.final-round::after {
+  content: "";
+  position: absolute;
+  left: -10%;
+  width: 120%;
+  height: 15px;
+  background: linear-gradient(90deg, transparent, #facc15 15% 85%, transparent);
+  box-shadow: 0 0 28px rgba(250, 204, 21, .75);
+  transform: rotate(-4deg);
+}
+
+.final-round::before { top: 18%; }
+.final-round::after { bottom: 18%; transform: rotate(4deg); }
+
+.final-round-card {
+  position: relative;
+  width: min(860px, 94vw);
+  padding: clamp(30px, 7vw, 72px) 24px;
+  text-align: center;
+  isolation: isolate;
+}
+
+.final-round-kicker {
+  color: #fef08a;
+  font-size: clamp(.8rem, 2vw, 1.15rem);
+  font-weight: 1000;
+  letter-spacing: .42em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 #7f1d1d;
+}
+
+.final-round-title {
+  margin: 4px 0;
+  color: #fff7d6;
+  font-size: clamp(4rem, 15vw, 9.5rem);
+  font-weight: 1000;
+  font-style: italic;
+  line-height: .78;
+  letter-spacing: -.09em;
+  text-transform: uppercase;
+  -webkit-text-stroke: clamp(1px, .25vw, 3px) #7f1d1d;
+  text-shadow: 6px 7px 0 #dc2626, 11px 13px 0 #450a0a, 0 0 34px rgba(250, 204, 21, .5);
+  transform: skew(-6deg) rotate(-2deg);
+  animation: final-round-hit .55s cubic-bezier(.2, .9, .2, 1.2) both;
+}
+
+.final-round-queue {
+  margin: 24px 0 5px;
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 900;
+}
+
+.final-round-detail { margin: 0 0 20px; color: #d4d4d8; }
+.final-round .btn { min-width: 150px; background: rgba(24, 24, 27, .8); }
+
+@keyframes final-round-in { from { opacity: 0; } }
+@keyframes final-round-hit {
+  from { opacity: 0; transform: scale(2.2) skew(-6deg) rotate(-2deg); filter: blur(8px); }
+  65% { opacity: 1; transform: scale(.94) skew(-6deg) rotate(-2deg); filter: blur(0); }
+  to { transform: scale(1) skew(-6deg) rotate(-2deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .final-round, .final-round-title { animation: none; }
+}
+.row-flex { flex: 1; }
+.field-max-280 { max-width: 280px; }
+.field-max-220 { max-width: 220px; }
+.field-max-120 { max-width: 120px; }
+.mt-10 { margin-top: 10px; }
+.log-meta-inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row-end { margin-top: 8px; justify-content: flex-end; }
+
+dialog {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 22px;
+  padding: 0;
+  width: min(760px, calc(100vw - 28px));
+  box-shadow: var(--shadow);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.modal-inner { padding: 20px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 { margin: 0; }
+
+.footer-note {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .app-shell { width: min(100% - 20px, 1500px); padding-top: 14px; }
+  .topbar, .grid { grid-template-columns: 1fr; display: grid; }
+  .top-actions { justify-content: stretch; }
+  .top-actions .btn { flex: 1; }
+  .panel { padding: 12px; }
+  .tracker-card { padding: 18px 12px 16px; }
+  .timer-display { font-size: clamp(3rem, 15vw, 4.5rem); }
+  .stats-grid, .stats-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .stat { padding: 10px 8px; border-radius: 12px; }
+  .stat .value { font-size: clamp(.95rem, 4vw, 1.3rem); white-space: nowrap; }
+  .stat .label { font-size: clamp(.62rem, 2.4vw, .76rem); line-height: 1.25; }
+  .mini-table-row { grid-template-columns: 1fr; }
+  .schedule-toolbar { grid-template-columns: 1fr 1fr; }
+  .schedule-summary { grid-column: 1 / -1; text-align: left; }
+  .schedule-head { display: none; }
+  .schedule-row { grid-template-columns: 30px 1fr auto; }
+  .schedule-row select { grid-column: 2 / -1; }
+  .schedule-row input { grid-column: 2; }
+  .schedule-duration { display: none; }
+}
+
+@media (max-width: 480px) {
+  .app-shell { width: min(100% - 12px, 1500px); }
+  .title-block h1 { font-size: 1.65rem; }
+  .tracker-fact { padding: 0 6px; }
+  .tracker-fact-label { font-size: .62rem; }
+  .tracker-fact-value { font-size: .86rem; }
+}
+
+  
+
+/* Integrated workflow layer: shared visual language without iframe-style boundaries. */
+body { overflow:auto; }
+.rationale-workspace { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+.workflow-heading { display:flex; justify-content:space-between; align-items:end; gap:24px; margin: 0 0 18px; }
+.workflow-heading h2 { margin:4px 0 6px; font-size:clamp(1.4rem,3vw,2rem); }
+.workflow-heading p { margin:0; max-width:760px; color:var(--muted); }
+.eyebrow { color:var(--accent); font-size:.74rem; font-weight:800; text-transform:uppercase; letter-spacing:.14em; }
+.workflow-step { flex:none; padding:10px 14px; border:1px solid var(--border); border-radius:999px; color:var(--muted); font-size:.82rem; }
+.workflow-step strong { color:var(--text); }
+.rationale-shell { height:auto; min-height:0; display:grid; grid-template-columns:minmax(0,1.12fr) minmax(360px,.88fr); gap:18px; align-items:start; }
+.rationale-content, .rationale-output-panel { height:auto; overflow:visible; min-width:0; padding:18px; border:1px solid var(--border); border-radius:var(--radius); background:rgba(255,255,255,.025); }
+.rationale-output-panel { position:sticky; top:16px; }
+#rationaleWorkspace label { display:grid; gap:7px; color:var(--muted); font-size:.78rem; text-transform:none; letter-spacing:normal; }
+#rationaleWorkspace label > span, #rationaleWorkspace .label-title { color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.08em; }
+#rationaleWorkspace .panel-header { margin-bottom:16px; }
+#rationaleWorkspace .panel-header h1 { display:none; }
+#rationaleWorkspace .panel-header .subtitle { display:none; }
+#rationaleWorkspace .panel-header h2 { margin:0 0 4px; }
+#rationaleWorkspace .panel-header p { color:var(--muted); margin:0; }
+#rationaleWorkspace .grid.two { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+#rationaleWorkspace textarea { resize:vertical; }
+#rationaleWorkspace .output-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+#rationaleWorkspace button { border:1px solid var(--border); background:var(--panel-soft); color:var(--text); border-radius:12px; padding:10px 12px; }
+#rationaleWorkspace button.primary { background:var(--accent-strong); color:#042f2e; font-weight:700; }
+#rationaleWorkspace button.danger { color:#fecdd3; border-color:rgba(251,113,133,.45); }
+.rationale-saved { color:var(--success); font-size:.8rem; font-weight:700; }
+@media(max-width:980px){.rationale-shell{grid-template-columns:1fr}.rationale-output-panel{position:static}.workflow-heading{align-items:start;flex-direction:column}.workflow-step{white-space:normal}}
+@media(max-width:600px){#rationaleWorkspace .grid.two,#rationaleWorkspace .output-actions{grid-template-columns:1fr}}
+</style></head><body>
+  <main class="app-shell">
+    <header class="topbar">
+      <section class="title-block">
+        <h1>Review Flow</h1><p>Plan the day, pace each review, build its rationale, and capture the outcome in one continuous workflow.</p>
+      </section>
+      <section class="top-actions">
+        <button class="btn" id="menuBtn">Menu</button>
+        <div class="menu-panel hidden" id="topMenuPanel">
+          <button class="btn" id="settingsBtn">Queue Settings</button>
+          <button class="btn" id="notificationsBtn">Notifications</button>
+          <button class="btn" id="planBtn">Schedule</button>
+          <button class="btn" id="archiveBtn">Archived Days</button>
+          <button class="btn" id="snapshotBtn">Save Current Plan</button>
+          <button class="btn warning" id="endDayBtn">End Day Review</button>
+          <button class="btn" id="completedAppsBtn">Completed Apps</button>
+          <button class="btn" id="detailsBtn">Plan Details</button>
+          <button class="btn" id="exportCsvBtn">Export CSV</button>
+          <button class="btn danger" id="resetBtn">Reset Day</button>
+        </div>
+      </section>
+    </header><section class="grid">
+  <section class="panel main-panel stack">
+    <div class="tracker-card">
+      <div class="timer-caption" id="timerCaption">Remaining</div>
+      <div class="timer-display" id="timerDisplay">--:--</div>
+      <div class="tracker-facts">
+        <div class="tracker-fact"><span class="tracker-fact-label">ETC</span><span class="tracker-fact-value" id="timerEtc">--:--</span></div>
+        <div class="tracker-fact"><span class="tracker-fact-label">Target</span><span class="tracker-fact-value" id="timerTarget">--:--</span></div>
+        <div class="tracker-fact"><span class="tracker-fact-label">Tracking since</span><span class="tracker-fact-value" id="trackerStartedAt">--:--</span></div>
+      </div>
+      <div class="timer-progress"><div class="timer-progress-fill" id="timerProgress"></div></div>
+    </div>
+
+    <div class="row between">
+      <div class="row row-flex">
+        <div class="field field-max-280">
+          <label for="completionQueue">Queue</label>
+          <select id="completionQueue"></select>
+        </div>
+        <div class="field field-max-220">
+          <label for="completionUid">App UID</label>
+          <input id="completionUid" placeholder="Enter UID" />
+        </div>
+        <div class="field field-max-220">
+          <label for="completionOutcome">Outcome</label>
+          <select id="completionOutcome">
+            <option value="">Select outcome</option>
+            <option value="Approve">Approve</option>
+            <option value="Resubmit">Resubmit</option>
+            <option value="Decline">Decline</option>
+            <option value="Refer to ORE">Refer to ORE</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <button class="btn success" id="completeAppBtn">App Completed</button>
+      </div>
+    </div>
+
+    <section class="stack">
+      <div class="overview-heading">
+        <h2>Day Overview</h2>
+        <span class="pill expected-total" id="expectedAppsTotal" aria-label="0 apps expected">0</span>
+      </div>
+      <div class="day-timeline" id="dayTimeline"></div>
+      <div class="stats-grid four">
+        <article class="stat">
+          <div class="value" id="productiveHours">0h 0m</div>
+          <div class="label">Productive planned time</div>
+        </article>
+        <article class="stat">
+          <div class="value" id="nonProductiveHours">0h 0m</div>
+          <div class="label">Non-productive planned time</div>
+        </article>
+        <article class="stat">
+          <div class="value" id="completedCount">0</div>
+          <div class="label">Apps completed</div>
+        </article>
+      </div>
+    </section>
+
+  </section>
+</section>
+
+  
+<section id="rationaleWorkspace" class="rationale-workspace" aria-labelledby="rationaleWorkspaceTitle">
+  <div class="workflow-heading">
+    <div><span class="eyebrow">Active review workspace</span><h2 id="rationaleWorkspaceTitle">Build the rationale while the target clock runs</h2><p>The live queue target above measures this review. Generate the rationale, then record the UID and outcome to complete the app and start the next target.</p></div>
+    <div class="workflow-step"><strong>1</strong> Draft <span>→</span> <strong>2</strong> Copy <span>→</span> <strong>3</strong> Complete</div>
+  </div>
+
+  <div class="rationale-shell">
+    <main class="rationale-content">
+      <section>
+        <div class="panel-header split">
+          <div>
+            <h1>Rationale <span>Builder</span></h1>
+            <p class="subtitle">Structured notes builder focused on rationale output.</p>
+            <h2>Rationale</h2>
+            <p>Build the main decision summary with consistent structure.</p>
+          </div>
+          <div class="header-actions">
+            <button id="toggleMacrosBtn" type="button" class="icon-btn" title="Toggle custom macros" aria-label="Toggle custom macros">🧩</button>
+            <button id="toggleSettingsBtn" type="button" class="icon-btn" title="Open settings" aria-label="Open settings">⚙️</button>
+            <button id="editDefaultsBtn" type="button" class="icon-btn" title="Save current rationale values as Clear Form defaults" aria-label="Save current rationale values as Clear Form defaults">💾</button>
+          </div>
+        </div>
+
+        <div id="macroToolbar" class="macro-toolbar hidden">
+          <p class="macro-toolbar-title">Custom Macros (click to insert into the active text box)</p>
+          <div id="macroChipGrid" class="macro-chip-grid"></div>
+        </div>
+
+        <div class="grid two">
+          <label>
+            <span>Decision</span>
+            <select id="decision">
+              <option value="++Approve++">Approve</option>
+              <option value="!!Decline!!">Decline</option>
+              <option value="Escalate">Escalate</option>
+              <option value="Refer">Refer</option>
+              <option value="!!!Rebsubmission!!!">Resub</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Risk Level</span>
+            <select id="riskLevel">
+              <option value="++Low++">Low</option>
+              <option value="!!!Medium!!!">Medium</option>
+              <option value="!!High!!">High</option>
+            </select>
+          </label>
+
+        </div>
+
+        <label>
+          <span>Summary of Decision</span>
+          <textarea id="summary" rows="4" placeholder="A section to explain the final outcome of your review, or signpost any outstanding 'next steps' that will be relevant to the subsequent review and/or other departments."></textarea>
+        </label>
+
+        <label>
+          <span>Do you understand the customer's nature of business, is it plausible and have you addressed associated risk factors</span>
+          <textarea id="evidence" rows="4" placeholder="Detail how you've validated the business activies as well as how you've addressed risk factors (e.g. overseas jurisdictions, cash, etc.) or discrepancies identifed during the review. Document an understanding of the initial and ongoing sources of funds/sources of wealth, and where required, describe the verifications steps you have taken."></textarea>
+        </label>
+
+        <div>
+          <span class="label-title">Risk Factors</span>
+          <div class="pill-grid" id="riskFactors">
+            <label class="pill"><input type="checkbox" value="Adverse media" /> Adverse media</label>
+            <label class="pill"><input type="checkbox" value="Lacking Understanding of Business" /> Unclear NoB</label>
+            <label class="pill"><input type="checkbox" value="Inconsistent information" /> Inconsistent info</label>
+            <label class="pill"><input type="checkbox" value="Document quality concerns" /> Document concerns</label>
+            <label class="pill"><input type="checkbox" value="Unusual account purpose" /> Unusual purpose</label>
+            <label class="pill"><input type="checkbox" value="Source of funds concern" /> SOF concern</label>
+            <label class="pill"><input type="checkbox" value="High Risk Jurisdiction involvement" /> HRJ involvement</label>
+          </div>
+        </div>
+
+        <label>
+          <span>Actions Taken</span>
+          <textarea id="actionTaken" rows="3" placeholder="What you did with the case and why, how did you mitigate any risks?"></textarea>
+        </label>
+
+        <label>
+          <span>Links</span>
+          <textarea id="rationaleNotes" rows="3" placeholder="Include any relevant communication links"></textarea>
+        </label>
+
+        <div id="cifasChecks" class="cifas-checks"></div>
+
+        <label>
+          <span>FACTA/CRS Check</span>
+          <textarea id="factaCrsCheck" rows="3" placeholder="Add FACTA/CRS check details to append at the end of the rationale."></textarea>
+        </label>
+      </section>
+    </main>
+
+    <aside class="rationale-output-panel">
+      <div class="panel-header">
+        <h2>Output Preview</h2>
+        <p>Ready to copy into your workflow. Markdown formatting is rendered below.</p>
+      </div>
+      <textarea id="output" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
+      <div id="outputPreview" class="preview-shell" aria-live="polite"></div>
+      <div class="output-actions">
+        <button id="generateBtn" class="primary">Generate Output</button>
+        <button id="copyBtn">Copy Output</button>
+        <button id="clearBtn" class="danger">Clear Form</button>
+      </div>
+      <div class="footer-note">Preferences and risk factors are saved locally in your browser.</div>
+    </aside>
+  </div>
+
+  <div id="settingsModal" class="settings-modal" aria-hidden="true">
+    <section class="settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="settingsModalTitle">Settings</h2>
+          <p>Control layout behaviour and manage risk factors.</p>
+        </div>
+        <button id="closeSettingsBtn" type="button" class="icon-btn" title="Close settings" aria-label="Close settings">✕</button>
+      </div>
+
+      <div class="settings-list">
+          <details class="settings-group" open>
+            <summary>Format</summary>
+            <div class="settings-group-content">
+              <label class="switch-row">
+                <div>
+                  <strong>Include empty sections</strong>
+                  <p>Show section headers even when the section has no content.</p>
+                </div>
+                <input type="checkbox" id="includeEmptySections" />
+              </label>
+
+              <label class="switch-row">
+                <div>
+                  <strong>Use markdown headings</strong>
+                  <p>Formats output with simple markdown for easy paste into MP.</p>
+                </div>
+                <input type="checkbox" id="useMarkdownHeadings" checked />
+              </label>
+
+              <label class="switch-row">
+                <div>
+                  <strong>Auto-generate while typing</strong>
+                  <p>Keeps the output preview updated as you work.</p>
+                </div>
+                <input type="checkbox" id="autoGenerate" checked />
+              </label>
+
+              <div class="switch-row" style="display:block;">
+                <div style="margin-bottom:12px;">
+                  <strong>Theme mode</strong>
+                  <p>Light mode is the default. You can still switch to dark mode and customise colours.</p>
+                </div>
+                <div class="theme-grid">
+                  <label>
+                    <span>Mode</span>
+                    <select id="themeMode">
+                      <option value="light">Light (default)</option>
+                      <option value="dark">Dark</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Accent colour</span>
+                    <input type="color" id="accentColor" value="#2e7de0" />
+                  </label>
+                  <label>
+                    <span>Background colour</span>
+                    <input type="color" id="bgColor" value="#edf2f8" />
+                  </label>
+                  <label>
+                    <span>Panel colour</span>
+                    <input type="color" id="panelColor" value="#f8fbff" />
+                  </label>
+                  <label>
+                    <span>Text box colour</span>
+                    <input type="color" id="textboxColor" value="#ffffff" />
+                  </label>
+                  <label>
+                    <span>Text colour</span>
+                    <input type="color" id="textColor" value="#172231" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="switch-row settings-danger-row">
+                <button type="button" id="hardResetBtn" class="danger">Hard Reset All Customisations</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-group" open>
+            <summary>Risk Factors</summary>
+            <div class="settings-group-content">
+              <div class="switch-row" style="display:block;">
+                <div style="margin-bottom:12px;">
+                  <strong>Risk factor buttons</strong>
+                  <p>Add, edit, and remove the selectable risk factors shown in the rationale section.</p>
+                </div>
+                <div class="settings-inline">
+                  <input type="text" id="newRiskFactor" placeholder="Add new risk factor" />
+                  <button type="button" id="addRiskFactorBtn">Add</button>
+                </div>
+                <div id="riskFactorManager" class="settings-list" style="margin-top:12px;"></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-group" open>
+            <summary>CIFAS</summary>
+            <div class="settings-group-content">
+              <div class="switch-row" style="display:block;">
+                <div style="margin-bottom:12px;">
+                  <strong>CIFAS check options</strong>
+                  <p>Add, edit, and remove the options shown in the CIFAS check dropdown.</p>
+                </div>
+                <div class="settings-inline">
+                  <input type="text" id="newCifasOption" placeholder="Add new CIFAS option" />
+                  <button type="button" id="addCifasOptionBtn">Add</button>
+                </div>
+                <div id="cifasOptionManager" class="settings-list" style="margin-top:12px;"></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="settings-group" open>
+            <summary>Macros</summary>
+            <div class="settings-group-content">
+              <div class="switch-row" style="display:block;">
+                <div style="margin-bottom:12px;">
+                  <strong>Custom macros</strong>
+                  <p>Add, edit, and remove predefined statements for quick insertion into text fields.</p>
+                </div>
+                <div class="settings-inline">
+                  <input type="text" id="newMacro" placeholder="Add new macro statement" />
+                  <button type="button" id="addMacroBtn">Add</button>
+                </div>
+                <div id="macroManager" class="settings-list" style="margin-top:12px;"></div>
+              </div>
+            </div>
+          </details>
+        </div>
+    </section>
+  </div>
+</section>
+</main>
+  <aside class="notification-toast hidden" id="notificationToast" role="status" aria-live="polite">
+    <div class="notification-toast-title" id="notificationToastTitle"></div>
+    <div class="notification-toast-message" id="notificationToastMessage"></div>
+  </aside>
+  <aside class="final-round hidden" id="finalRound" role="dialog" aria-modal="true" aria-labelledby="finalRoundTitle" aria-describedby="finalRoundDetail">
+    <div class="final-round-card">
+      <div class="final-round-kicker">Final target</div>
+      <div class="final-round-title" id="finalRoundTitle">Final App</div>
+      <div class="final-round-queue" id="finalRoundQueue"></div>
+      <p class="final-round-detail" id="finalRoundDetail"></p>
+      <button class="btn" id="dismissFinalRoundBtn" type="button">Let’s go!</button>
+    </div>
+  </aside>
+  <dialog id="notificationDialog">
+    <form method="dialog" class="modal-inner stack">
+      <div class="modal-header"><h2>Notifications</h2><button class="btn small" value="close">Close</button></div>
+      <p class="subtle">Get a reminder when a scheduled app target is due. The dashboard must remain open for reminders to run.</p>
+      <section class="panel-soft stack">
+        <div id="notificationStatus" class="notification-status subtle"></div>
+        <label class="row" style="text-transform: none; letter-spacing: 0;">
+          <input id="notificationReminders" type="checkbox" style="width: auto;" /> Enable scheduled target reminders
+        </label>
+        <div class="row">
+          <button class="btn primary" id="enableNotificationsBtn" type="button">Enable browser notifications</button>
+          <button class="btn" id="testNotificationBtn" type="button">Send test</button>
+        </div>
+        <label class="row" style="text-transform: none; letter-spacing: 0;">
+          <input id="notificationSound" type="checkbox" style="width: auto;" /> Play a sound with reminders
+        </label>
+      </section>
+      <p class="footer-note">Local <code>file://</code> pages do not have consistent notification permission support across browsers. If native notifications are unavailable or blocked, the dashboard automatically uses an in-page notification and sound instead. Serving this file from <code>http://localhost</code> gives browser notifications the best chance of working.</p>
+    </form>
+  </dialog>  <dialog id="detailsDialog">
+    <form method="dialog" class="modal-inner stack">
+      <div class="modal-header"><h2>Plan Details</h2><button class="btn small" value="close">Close</button></div>
+      <section class="panel-soft stack"><h3>Live Queue Tracker</h3><div id="liveTrackerDetails" class="subtle">Queue changes will appear here.</div></section>
+      <section class="panel-soft stack"><h3>Current Plan Segment</h3><div id="currentSegmentDetails" class="subtle">No matching segment yet.</div></section>
+      <section><h3>Queue Breakdown</h3><div class="table-like" id="breakdownList"></div></section>
+    </form>
+  </dialog>  <dialog id="newDayDialog">
+    <form method="dialog" class="modal-inner stack">
+      <div class="modal-header"><h2>A new day has started</h2></div>
+      <p class="subtle">Export yesterday’s tracking history and start a fresh schedule, or keep the current day open for now.</p>
+      <div class="row">
+        <button class="btn primary" id="newDayExportBtn" type="button">Export CSV &amp; reset</button>
+        <button class="btn" id="newDayResetBtn" type="button">Reset without export</button>
+        <button class="btn" id="newDaySkipBtn" type="button">Skip for now</button>
+      </div>
+    </form>
+  </dialog>  <dialog id="settingsDialog">
+    <form method="dialog" class="modal-inner">
+      <div class="modal-header">
+        <h2>Queue Settings</h2>
+        <button class="btn small" value="close">Close</button>
+      </div><div class="stack">
+    <div class="row">
+      <div class="field">
+        <label for="queueName">Queue name</label>
+        <input id="queueName" placeholder="e.g. BCA, EDD, IDV" />
+      </div>
+      <div class="field">
+        <label for="queueRate">Apps per hour</label>
+        <input id="queueRate" type="number" min="0" step="0.1" placeholder="e.g. 4" />
+      </div>
+      <div class="field field-max-120">
+        <label for="queueColor">Colour</label>
+        <input id="queueColor" type="color" value="#14b8a6" />
+      </div>
+      <button class="btn primary" id="addQueueBtn" type="button">Add Queue</button>
+    </div>
+
+    <div class="queue-list" id="queueList"></div>
+  </div>
+</form>
+
+  </dialog>  <dialog id="reviewDialog">
+    <form method="dialog" class="modal-inner">
+      <div class="modal-header">
+        <h2>End Day Review</h2>
+        <button class="btn small" value="close">Close</button>
+      </div>
+      <div class="stack" id="reviewContent"></div>
+      <p class="footer-note">Start plan is captured with “Save Current Plan”. Current plan reflects whatever chaos Resource Planning later inflicted.</p>
+    </form>
+  </dialog>  <dialog id="completionDialog" class="completion-modal">
+    <form method="dialog" class="modal-inner stack">
+      <div class="modal-header">
+        <h2>Completed Apps</h2>
+        <button class="btn small" value="close">Close</button>
+      </div>
+      <p class="subtle">Delete mistaken entries from today’s historical completion log.</p>
+      <div class="log-list single-output" id="completionHistory"></div>
+    </form>
+  </dialog>  <dialog id="planDialog" class="schedule-modal">
+    <form method="dialog" class="modal-inner stack" id="planForm">
+      <div class="modal-header">
+        <h2>Today’s Queue Plan</h2>
+        <button class="btn small" value="close">Close</button>
+      </div>
+      <p class="subtle">The default shift is 11:00–19:30, beginning with a 15-minute team briefing. A segment runs until the next one begins. Live active queue changes are tracked separately and do not edit the schedule.</p>
+      <div class="schedule-toolbar">
+        <div class="field">
+          <label for="shiftStart">Shift starts</label>
+          <input id="shiftStart" type="time" />
+        </div>
+        <div class="field">
+          <label for="shiftEnd">Shift ends</label>
+          <input id="shiftEnd" type="time" />
+        </div>
+        <div class="schedule-summary subtle" id="scheduleSummary"></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="addSegmentBtn" type="button">+ Add activity</button>
+      </div>
+      <div class="schedule-table">
+        <div class="schedule-head"><span>#</span><span>Queue / activity</span><span>Starts</span><span>Ends</span><span>Duration</span><span></span></div>
+        <div id="segmentList" class="stack"></div>
+      </div>
+    </form>
+  </dialog>  <dialog id="archiveDialog">
+    <form method="dialog" class="modal-inner stack">
+      <div class="modal-header">
+        <h2>Archived Days</h2>
+        <button class="btn small" value="close">Close</button>
+      </div>
+      <div class="log-list single-output" id="archiveHistory"></div>
+    </form>
+  </dialog>  <script>
+
+    const STORAGE_KEY = "queuePerformanceDashboard.v2";
+    const NON_PRODUCTIVE_NAME = "Non-productive";
+    const OFF_QUEUE_NAME = "Off queue";
+    const TEAM_BRIEFING_NAME = "Team briefing";
+    const TEAM_BRIEFING_ID = crypto.randomUUID();
+    const BASE_TITLE = "Queue Performance Dashboard";
+    const DEFAULT_SHIFT_START = "11:00";
+    const DEFAULT_SHIFT_END = "19:30";
+    const TEAM_BRIEFING_MINUTES = 15;
+
+    const defaultState = {
+      queues: [
+        { id: crypto.randomUUID(), name: NON_PRODUCTIVE_NAME, rate: 0, color: "#71717a", locked: true },
+        { id: crypto.randomUUID(), name: OFF_QUEUE_NAME, rate: 0, color: "#f59e0b", locked: true },
+        { id: TEAM_BRIEFING_ID, name: TEAM_BRIEFING_NAME, rate: 0, color: "#0ea5e9", locked: true },
+        { id: crypto.randomUUID(), name: "Startup", rate: 2.29, color: "#ba3aff" },
+        { id: crypto.randomUUID(), name: "Established", rate: 2.29, color: "#2df24d" },
+        { id: crypto.randomUUID(), name: "Resubmissions", rate: 2.63, color: "#fb2832" },
+        { id: crypto.randomUUID(), name: "Sole Trader", rate: 2.71, color: "#d6fb0b" },
+        { id: crypto.randomUUID(), name: "Sole Trader Resubmissions", rate: 2.75, color: "#f48a0f" }
+      ],
+      shiftStart: DEFAULT_SHIFT_START,
+      shiftEnd: DEFAULT_SHIFT_END,
+      segments: [{ id: crypto.randomUUID(), queueId: TEAM_BRIEFING_ID, start: DEFAULT_SHIFT_START }],
+      completions: [],
+      archive: [],
+      activityLog: [],
+      startingSnapshot: null,
+      activeQueueId: null,
+      activeQueueStartedAt: null,
+      queueSwitchLog: [],
+      timerStartedAt: null,
+      timerQueueId: null,
+      notificationsEnabled: false,
+      notificationSound: true,
+      lastNotifiedSlot: null,
+      lastFinalRoundSegment: null,
+      dayDate: localDateKey(),
+    };
+
+    let state = loadState();
+    ensureNonProductiveQueue();
+    ensureOffQueue();
+    ensureTeamBriefingQueue();
+
+    const els = {
+      menuBtn: document.getElementById("menuBtn"),
+      topMenuPanel: document.getElementById("topMenuPanel"),
+      settingsBtn: document.getElementById("settingsBtn"),
+      notificationsBtn: document.getElementById("notificationsBtn"),
+      notificationDialog: document.getElementById("notificationDialog"),
+      notificationStatus: document.getElementById("notificationStatus"),
+      enableNotificationsBtn: document.getElementById("enableNotificationsBtn"),
+      testNotificationBtn: document.getElementById("testNotificationBtn"),
+      notificationSound: document.getElementById("notificationSound"),
+      notificationReminders: document.getElementById("notificationReminders"),
+      notificationToast: document.getElementById("notificationToast"),
+      notificationToastTitle: document.getElementById("notificationToastTitle"),
+      notificationToastMessage: document.getElementById("notificationToastMessage"),
+      finalRound: document.getElementById("finalRound"),
+      finalRoundQueue: document.getElementById("finalRoundQueue"),
+      finalRoundDetail: document.getElementById("finalRoundDetail"),
+      dismissFinalRoundBtn: document.getElementById("dismissFinalRoundBtn"),
+      planBtn: document.getElementById("planBtn"),
+      archiveBtn: document.getElementById("archiveBtn"),
+      snapshotBtn: document.getElementById("snapshotBtn"),
+      endDayBtn: document.getElementById("endDayBtn"),
+      exportCsvBtn: document.getElementById("exportCsvBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      settingsDialog: document.getElementById("settingsDialog"),
+      planDialog: document.getElementById("planDialog"),
+      planForm: document.getElementById("planForm"),
+      archiveDialog: document.getElementById("archiveDialog"),
+      reviewDialog: document.getElementById("reviewDialog"),
+      completionDialog: document.getElementById("completionDialog"),
+      completedAppsBtn: document.getElementById("completedAppsBtn"),
+      detailsBtn: document.getElementById("detailsBtn"),
+      detailsDialog: document.getElementById("detailsDialog"),
+      newDayDialog: document.getElementById("newDayDialog"),
+      newDayExportBtn: document.getElementById("newDayExportBtn"),
+      newDayResetBtn: document.getElementById("newDayResetBtn"),
+      newDaySkipBtn: document.getElementById("newDaySkipBtn"),
+      queueName: document.getElementById("queueName"),
+      queueRate: document.getElementById("queueRate"),
+      queueColor: document.getElementById("queueColor"),
+      addQueueBtn: document.getElementById("addQueueBtn"),
+      queueList: document.getElementById("queueList"),
+      shiftStart: document.getElementById("shiftStart"),
+      shiftEnd: document.getElementById("shiftEnd"),
+      scheduleSummary: document.getElementById("scheduleSummary"),
+      addSegmentBtn: document.getElementById("addSegmentBtn"),
+      segmentList: document.getElementById("segmentList"),
+      trackerStartedAt: document.getElementById("trackerStartedAt"),
+      timerCaption: document.getElementById("timerCaption"),
+      timerDisplay: document.getElementById("timerDisplay"),
+      timerEtc: document.getElementById("timerEtc"),
+      timerTarget: document.getElementById("timerTarget"),
+      timerProgress: document.getElementById("timerProgress"),
+      completionQueue: document.getElementById("completionQueue"),
+      completionUid: document.getElementById("completionUid"),
+      completionOutcome: document.getElementById("completionOutcome"),
+      completeAppBtn: document.getElementById("completeAppBtn"),
+      completedCount: document.getElementById("completedCount"),
+      currentSegmentDetails: document.getElementById("currentSegmentDetails"),
+      liveTrackerDetails: document.getElementById("liveTrackerDetails"),
+      breakdownList: document.getElementById("breakdownList"),
+      completionHistory: document.getElementById("completionHistory"),
+      archiveHistory: document.getElementById("archiveHistory"),
+      reviewContent: document.getElementById("reviewContent"),
+      dayTimeline: document.getElementById("dayTimeline"),
+      expectedAppsTotal: document.getElementById("expectedAppsTotal"),
+      productiveHours: document.getElementById("productiveHours"),
+      nonProductiveHours: document.getElementById("nonProductiveHours")
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        const migrated = { ...structuredClone(defaultState), ...parsed };
+        if (!parsed.shiftStart && migrated.segments.length) {
+          migrated.shiftStart = migrated.segments.reduce((earliest, segment) => segment.start < earliest ? segment.start : earliest, migrated.segments[0].start);
+        }
+        if (!parsed.shiftEnd && migrated.segments.length) {
+          migrated.shiftEnd = migrated.segments.reduce((latest, segment) => segment.end && segment.end > latest ? segment.end : latest, DEFAULT_SHIFT_END);
+        }
+        migrated.segments = migrated.segments.map(({ end, ...segment }) => segment);
+        delete migrated.selectedSegmentId;
+        delete migrated.timeBankSeconds;
+        return migrated;
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function ensureNonProductiveQueue() {
+      const existing = state.queues.find(queue => queue.name.toLowerCase() === NON_PRODUCTIVE_NAME.toLowerCase());
+      if (existing) {
+        existing.rate = 0;
+        existing.locked = true;
+        existing.color = existing.color || "#71717a";
+        return;
+      }
+
+      state.queues.unshift({
+        id: crypto.randomUUID(),
+        name: NON_PRODUCTIVE_NAME,
+        rate: 0,
+        color: "#71717a",
+        locked: true
+      });
+    }
+
+    function ensureOffQueue() {
+      const existing = state.queues.find(queue => queue.name.toLowerCase() === OFF_QUEUE_NAME.toLowerCase());
+      if (existing) {
+        existing.rate = 0;
+        existing.locked = true;
+        existing.color = existing.color || "#f59e0b";
+        return existing;
+      }
+      const queue = { id: crypto.randomUUID(), name: OFF_QUEUE_NAME, rate: 0, color: "#f59e0b", locked: true };
+      state.queues.push(queue);
+      return queue;
+    }
+
+    function ensureTeamBriefingQueue() {
+      const existing = state.queues.find(queue => queue.name.toLowerCase() === TEAM_BRIEFING_NAME.toLowerCase());
+      if (existing) {
+        existing.rate = 0;
+        existing.locked = true;
+        existing.color = existing.color || "#0ea5e9";
+        return existing;
+      }
+      const queue = { id: crypto.randomUUID(), name: TEAM_BRIEFING_NAME, rate: 0, color: "#0ea5e9", locked: true };
+      state.queues.push(queue);
+      return queue;
+    }
+
+    function localDateKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function logActivity(type, text) {
+      state.activityLog.unshift({ id: crypto.randomUUID(), type, text, at: nowIso() });
+      state.activityLog = state.activityLog.slice(0, 80);
+      saveState();
+    }
+
+    function minutesFromTime(time) {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
+
+    function nowDate() { return new Date(); }
+
+    function nowIso() {
+      return nowDate().toISOString();
+    }
+
+    function nowMinutes() {
+      const now = nowDate();
+      return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    }
+
+    function formatHoursMinutes(hoursValue) {
+      const totalMinutes = Math.round(Math.max(0, hoursValue) * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${hours}h ${minutes}m`;
+    }
+
+    function formatDuration(secondsValue) {
+      const seconds = Math.ceil(Math.abs(secondsValue));
+      const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const remainder = String(seconds % 60).padStart(2, "0");
+      return `${secondsValue < 0 ? "-" : ""}${minutes}:${remainder}`;
+    }
+
+    function formatClock(iso) {
+      return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function getQueue(id, queues = state.queues) {
+      return queues.find(queue => queue.id === id);
+    }
+
+    function isProductiveQueue(queue) {
+      return Number(queue?.rate || 0) > 0;
+    }
+
+    function getSegmentBounds(segment, segments = state.segments, shiftEnd = state.shiftEnd) {
+      const start = minutesFromTime(segment.start);
+      const sorted = getSortedSegments(segments);
+      const index = sorted.findIndex(item => item.id === segment.id);
+      const next = sorted[index + 1];
+      const end = next ? minutesFromTime(next.start) : minutesFromTime(shiftEnd);
+      return { start, end };
+    }
+
+    function getSortedSegments(segments = state.segments) {
+      return segments.slice().sort((a, b) => minutesFromTime(a.start) - minutesFromTime(b.start));
+    }
+
+    function getSegmentEnd(segment) {
+      const { end } = getSegmentBounds(segment);
+      return timeFromMinutes(end);
+    }
+
+    function timeFromMinutes(total) {
+      const safe = Math.max(0, Math.min(1439, Math.round(total)));
+      return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
+    }
+
+    function getCurrentSegment() {
+      return getPlannedSegmentAtNow();
+    }
+
+    function getSegmentAtDate(date, includeEnd = false) {
+      const minutes = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+      return state.segments.find(segment => {
+        const { start, end } = getSegmentBounds(segment);
+        return includeEnd ? minutes >= start && minutes <= end : minutes >= start && minutes < end;
+      }) || null;
+    }
+
+    function getPlannedSegmentAtNow() {
+      const current = nowMinutes();
+      return state.segments.find(segment => {
+        const { start, end } = getSegmentBounds(segment);
+        return current >= start && current < end;
+      }) || null;
+    }
+
+    function getDefaultActiveQueueId() {
+      const plannedSegment = getPlannedSegmentAtNow();
+      const plannedQueue = plannedSegment ? getQueue(plannedSegment.queueId) : null;
+      return isProductiveQueue(plannedQueue) ? plannedQueue.id : null;
+    }
+
+    function getActiveQueue() {
+      const manualQueue = state.activeQueueId ? getQueue(state.activeQueueId) : null;
+      if (manualQueue) return manualQueue;
+      const plannedSegment = getPlannedSegmentAtNow();
+      return plannedSegment ? getQueue(plannedSegment.queueId) || null : null;
+    }
+
+    function getQueueSwitchRows() {
+      return Array.isArray(state.queueSwitchLog) ? state.queueSwitchLog : [];
+    }
+
+    function setActiveQueue(queueId, source = "manual") {
+      const queue = getQueue(queueId);
+      if (!queue) return;
+      if (state.activeQueueId === queueId) return;
+
+      const plannedSegment = getPlannedSegmentAtNow();
+      const plannedQueue = plannedSegment ? getQueue(plannedSegment.queueId) : null;
+      const previousQueue = getActiveQueue();
+      const changedAt = nowIso();
+
+      state.activeQueueId = queueId;
+      state.activeQueueStartedAt = changedAt;
+      const adherenceText = plannedQueue
+        ? (plannedQueue.id === queueId ? "matches the original plan" : `planned ${plannedQueue.name}`)
+        : "outside planned time";
+
+      state.queueSwitchLog.unshift({
+        id: crypto.randomUUID(),
+        at: changedAt,
+        queueId,
+        previousQueueId: previousQueue?.id || null,
+        plannedQueueId: plannedQueue?.id || null,
+        plannedSegmentId: plannedSegment?.id || null,
+        source
+      });
+      state.queueSwitchLog = state.queueSwitchLog.slice(0, 120);
+      logActivity("tracker", `Switched live queue to ${queue.name} (${adherenceText}).`);
+    }
+
+    function getSegmentMinutes(segment, segments = state.segments, shiftEnd = state.shiftEnd) {
+      const { start, end } = getSegmentBounds(segment, segments, shiftEnd);
+      return Math.max(0, end - start);
+    }
+
+    // This is the single source of truth for every segment target. A fractional
+    // app cannot be completed, so first round the segment total up and only then
+    // derive its cadence. Timer readouts, bars, reminders and target totals all
+    // consume this same plan.
+    function getSegmentTargetPlan(segment, segments = state.segments, queues = state.queues, shiftEnd = state.shiftEnd) {
+      const queue = getQueue(segment.queueId, queues);
+      const durationSeconds = getSegmentMinutes(segment, segments, shiftEnd) * 60;
+      const rawExpectedApps = queue ? (durationSeconds / 3600) * Number(queue.rate || 0) : 0;
+      const expectedApps = rawExpectedApps > 0 ? Math.ceil(rawExpectedApps) : 0;
+      return {
+        rawExpectedApps,
+        expectedApps,
+        durationSeconds,
+        secondsPerApp: expectedApps > 0 ? durationSeconds / expectedApps : 0
+      };
+    }
+
+    function getSegmentExpectedWholeApps(segment) {
+      return getSegmentTargetPlan(segment).expectedApps;
+    }
+
+    function getExpectedFullDay(segments = state.segments, queues = state.queues) {
+      return segments.reduce((sum, segment) => {
+        return sum + getSegmentTargetPlan(segment, segments, queues).expectedApps;
+      }, 0);
+    }
+
+    function getPlannedHours(productiveOnly) {
+      const minutes = state.segments.reduce((sum, segment) => {
+        const queue = getQueue(segment.queueId);
+        const productive = isProductiveQueue(queue);
+        if (productiveOnly === productive) return sum + getSegmentMinutes(segment);
+        return sum;
+      }, 0);
+      return minutes / 60;
+    }
+
+    function renderQueueOptions() {
+      const productiveQueues = state.queues.filter(queue => isProductiveQueue(queue));
+      const nonProductiveQueues = state.queues.filter(queue => !isProductiveQueue(queue));
+      const renderOptions = queues => queues
+        .map(queue => `<option value="${queue.id}">${escapeHtml(queue.name)}</option>`)
+        .join("");
+
+      els.completionQueue.innerHTML = `
+        <optgroup label="Productive queues">${renderOptions(productiveQueues)}</optgroup>
+        <optgroup label="Non-productive / off queue">${renderOptions(nonProductiveQueues)}</optgroup>
+      `;
+
+      const activeQueue = getActiveQueue();
+      const fallbackQueue = productiveQueues[0] || nonProductiveQueues[0];
+      if (activeQueue) {
+        els.completionQueue.value = activeQueue.id;
+      } else if (fallbackQueue) {
+        els.completionQueue.value = fallbackQueue.id;
+      }
+    }
+
+    function renderQueues() {
+      els.queueList.innerHTML = state.queues.map(queue => `
+        <article class="queue-card" style="--queue-color: ${queue.color || "#14b8a6"}">
+          <div class="queue-card-title">
+            <span class="row" style="gap: 8px;"><span class="swatch" style="--queue-color: ${queue.color || "#14b8a6"}"></span>${escapeHtml(queue.name)}</span>
+            <span class="pill">${queue.rate} apps/hr</span>
+          </div>
+          <div class="queue-meta">${queue.rate > 0 ? `One app every ${Math.round(60 / queue.rate)} minutes.` : "No productivity target. Breaks, lunch, meetings, and other sanctioned voids."}</div>
+          <div class="row mt-10">
+            <button class="btn small" data-edit-queue="${queue.id}">Edit</button>
+            ${queue.locked ? "" : `<button class="btn small danger" data-delete-queue="${queue.id}">Delete</button>`}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderSegments() {
+      const currentSegment = getCurrentSegment();
+      const sorted = getSortedSegments();
+      els.shiftStart.value = state.shiftStart;
+      els.shiftEnd.value = state.shiftEnd;
+      const shiftMinutes = Math.max(0, minutesFromTime(state.shiftEnd) - minutesFromTime(state.shiftStart));
+      const plannedMinutes = sorted.reduce((sum, segment) => sum + getSegmentMinutes(segment), 0);
+      els.scheduleSummary.innerHTML = `<strong>${formatHoursMinutes(shiftMinutes / 60)} shift</strong> · ${sorted.length} ${sorted.length === 1 ? "activity" : "activities"} · ${formatHoursMinutes(plannedMinutes / 60)} scheduled`;
+
+      els.segmentList.innerHTML = sorted.length ? sorted.map((segment, index) => {
+        const queue = getQueue(segment.queueId);
+        const isActive = currentSegment && currentSegment.id === segment.id;
+        const queueOptions = state.queues.map(option => `<option value="${option.id}" ${option.id === segment.queueId ? "selected" : ""}>${escapeHtml(option.name)} · ${option.rate} apps/hr</option>`).join("");
+        return `
+          <article class="schedule-row ${isActive ? "active" : ""}" style="--queue-color: ${queue?.color || "#14b8a6"}">
+            <span class="schedule-index">${index + 1}</span>
+            <select aria-label="Queue for activity ${index + 1}" data-segment-queue="${segment.id}">${queueOptions}</select>
+            <input aria-label="Start time for activity ${index + 1}" data-segment-start="${segment.id}" type="time" value="${segment.start}">
+            <span class="schedule-end">${getSegmentEnd(segment)}</span>
+            <span class="schedule-duration">${formatHoursMinutes(getSegmentMinutes(segment) / 60)}</span>
+            <button class="btn small danger" type="button" data-delete-segment="${segment.id}" aria-label="Delete activity ${index + 1}">Remove</button>
+          </article>
+        `;
+      }).join("") : `<div class="schedule-empty subtle">No activities yet. Add the first one and its start time will default to shift start.</div>`;
+    }
+
+    function renderCompletionHistory() {
+      els.completionHistory.innerHTML = state.completions.length
+        ? state.completions.slice().reverse().map(app => {
+          const queue = getQueue(app.queueId);
+          return `
+            <article class="log-card">
+              <div><strong>${escapeHtml(app.uid || "(no uid)")}</strong> · ${escapeHtml(queue?.name || "Missing queue")}</div>
+              <div class="log-meta">Outcome: ${escapeHtml(app.outcome || "Unspecified")}</div>
+              <div class="log-meta log-meta-inline">
+                <span>Completed ${formatClock(app.at)}</span>
+                ${app.activeQueueStartedAt ? `<span>·</span><span>Queue selected ${formatClock(app.activeQueueStartedAt)}</span>` : ""}
+              </div>
+              <div class="row row-end">${app.rationale ? `<span class="rationale-saved">Rationale saved</span>` : ""}<button class="btn small danger" data-delete-completion="${app.id}">Delete</button></div>
+            </article>
+          `;
+        }).join("")
+        : `<p class="subtle">No completed apps yet.</p>`;
+    }
+
+    function renderArchiveHistory() {
+      els.archiveHistory.innerHTML = state.archive?.length
+        ? state.archive.slice().reverse().map(day => `
+          <article class="log-card">
+            <div><strong>${escapeHtml(new Date(day.archivedAt).toLocaleDateString())}</strong> · ${escapeHtml(day.label)}</div>
+            <div class="log-meta log-meta-inline">
+              <span>${day.completions.length} completed</span><span>·</span>
+              <span>${day.segments.length} segments</span><span>·</span>
+              <span>${day.queues.length} queues</span>
+            </div>
+          </article>
+        `).join("")
+        : `<p class="subtle">No archived days yet.</p>`;
+    }
+
+    function renderStats() {
+      els.completedCount.textContent = state.completions.length;
+      els.productiveHours.textContent = formatHoursMinutes(getPlannedHours(true));
+      els.nonProductiveHours.textContent = formatHoursMinutes(getPlannedHours(false));
+    }
+
+    function renderDayTimeline() {
+      const roundedExpectedTotal = state.segments.reduce((sum, segment) => sum + getSegmentExpectedWholeApps(segment), 0);
+      els.expectedAppsTotal.textContent = roundedExpectedTotal;
+      els.expectedAppsTotal.setAttribute("aria-label", `${roundedExpectedTotal} ${roundedExpectedTotal === 1 ? "app" : "apps"} expected`);
+
+      if (!state.segments.length) {
+        els.dayTimeline.innerHTML = `<div class="timeline-block" style="width: 100%; background: transparent;"></div>`;
+        return;
+      }
+
+      const first = minutesFromTime(state.shiftStart);
+      const last = minutesFromTime(state.shiftEnd);
+      const total = Math.max(1, last - first);
+
+      els.dayTimeline.innerHTML = getSortedSegments().map(segment => {
+        const queue = getQueue(segment.queueId);
+        const segmentMinutes = getSegmentMinutes(segment);
+        const expected = getSegmentExpectedWholeApps(segment);
+        const completed = state.completions.filter(app => app.segmentId === segment.id).length;
+        const expectedText = expected > 0 ? `${expected} ${expected === 1 ? "app" : "apps"}` : "No expected apps";
+        const completedText = `${completed} completed`;
+        const title = `${queue?.name || "Missing queue"}: ${segment.start}-${getSegmentEnd(segment)} · ${completedText} / ${expectedText}`;
+        const label = expected > 0 ? `${completed}/${expected}` : (completed > 0 ? `${completed}` : "");
+        return segmentMinutes > 0 ? `<div class="timeline-block" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}" style="width: ${(segmentMinutes / total) * 100}%; --queue-color: ${queue?.color || "#14b8a6"};">${label ? `<span class="timeline-label">${label}</span>` : ""}</div>` : "";
+      }).join("");
+    }
+
+    function renderBreakdown() {
+      const byQueue = state.queues.map(queue => {
+        const queueSegments = state.segments.filter(segment => segment.queueId === queue.id);
+        const expected = queueSegments.reduce((sum, segment) => sum + getSegmentExpectedWholeApps(segment), 0);
+        const plannedHours = queueSegments.reduce((sum, segment) => sum + getSegmentMinutes(segment), 0) / 60;
+        const completed = state.completions.filter(app => app.queueId === queue.id).length;
+        const switches = getQueueSwitchRows().filter(entry => entry.queueId === queue.id).length;
+        return { queue, expected, plannedHours, completed, switches };
+      }).filter(row => row.expected > 0 || row.completed > 0 || row.plannedHours > 0 || row.switches > 0);
+
+      els.breakdownList.innerHTML = byQueue.length
+        ? byQueue.map(row => `
+          <div class="mini-table-row">
+            <strong class="row" style="gap: 8px;"><span class="swatch" style="--queue-color: ${row.queue.color || "#14b8a6"}"></span>${escapeHtml(row.queue.name)}</strong>
+            <span class="subtle">${formatHoursMinutes(row.plannedHours)} planned · ${row.expected.toFixed(1)} expected · ${row.completed} completed</span>
+            <span class="pill">${row.switches} switches</span>
+          </div>
+        `).join("")
+        : `<p class="subtle">No queue history yet.</p>`;
+    }
+
+    function renderLiveTracker() {
+      const activeQueue = getActiveQueue();
+      const plannedSegment = getPlannedSegmentAtNow();
+      const plannedQueue = plannedSegment ? getQueue(plannedSegment.queueId) : null;
+      const trackingStarted = state.activeQueueStartedAt ? formatClock(state.activeQueueStartedAt) : "from current plan";
+      const adherenceClass = plannedQueue && activeQueue?.id === plannedQueue.id ? "good" : "warn";
+      const recentSwitches = getQueueSwitchRows().slice(0, 5);
+      const switchHtml = recentSwitches.length
+        ? `<div style="margin-top: 10px;"><strong>Recent manual queue changes:</strong><br>${recentSwitches.map(entry => {
+          const queue = getQueue(entry.queueId);
+          const planned = entry.plannedQueueId ? getQueue(entry.plannedQueueId) : null;
+          const adherence = planned ? (planned.id === entry.queueId ? "matched plan" : `planned ${planned.name}`) : "outside plan";
+          return `${formatClock(entry.at)} · ${escapeHtml(queue?.name || "Missing queue")} · ${escapeHtml(adherence)}`;
+        }).join("<br>")}</div>`
+        : `<div style="margin-top: 10px;">No manual queue changes logged yet. Changing the dropdown will start the adherence log without editing today’s plan.</div>`;
+
+      if (!activeQueue) {
+        els.liveTrackerDetails.innerHTML = `No productive live queue selected. Pick one in the Live active queue dropdown to start tracking actual work.${switchHtml}`;
+        return;
+      }
+
+      els.liveTrackerDetails.innerHTML = `
+        <strong>${escapeHtml(activeQueue.name)}</strong> is being worked now.
+        <span class="pill ${adherenceClass}" style="margin-left: 6px;">${plannedQueue?.id === activeQueue.id ? "On plan" : "Off plan"}</span><br>
+        Tracking started ${trackingStarted}. Planned right now: ${escapeHtml(plannedQueue?.name || "No productive queue")}${plannedSegment ? ` (${plannedSegment.start}-${getSegmentEnd(plannedSegment)})` : ""}.<br>
+        Queue changes and app completions are recorded with timestamps for export.
+        ${switchHtml}
+      `;
+    }
+
+    function renderCurrentSegmentDetails() {
+      const segment = getCurrentSegment();
+      if (!segment) {
+        els.currentSegmentDetails.textContent = "No active plan segment right now.";
+        return;
+      }
+
+      const queue = getQueue(segment.queueId);
+      const expectedSegment = getSegmentExpectedWholeApps(segment);
+      const completedInSegment = state.completions.filter(app => app.segmentId === segment.id).length;
+      els.currentSegmentDetails.innerHTML = `
+        <strong>${escapeHtml(queue?.name || "Missing queue")}</strong><br>
+        ${segment.start} to ${getSegmentEnd(segment)} · ${queue?.rate ?? 0} apps/hr · ${expectedSegment} expected in this segment<br>
+        ${completedInSegment} completed while this segment was active.
+      `;
+    }
+
+    function getScheduleDateAtMinutes(minutes) {
+      const date = nowDate();
+      date.setHours(0, 0, 0, 0);
+      // Date#setMinutes truncates a fractional minute before applying it. Our
+      // target cadence can include seconds (for example, 48 seconds), so using
+      // it directly snapped every due time to a minute boundary. That made the
+      // countdown briefly show up to 00:59 while its 00:48 progress bar stayed
+      // full. Apply the offset as milliseconds to preserve the entire cadence.
+      date.setMilliseconds(Math.round(minutes * 60 * 1000));
+      return date;
+    }
+
+    function getScheduledCompletionSlots() {
+      const slots = [];
+      for (const segment of getSortedSegments()) {
+        const queue = getQueue(segment.queueId);
+        if (!isProductiveQueue(queue)) continue;
+
+        const { start } = getSegmentBounds(segment);
+        const target = getSegmentTargetPlan(segment);
+        if (!target.expectedApps || !target.durationSeconds) continue;
+
+        // The segment target is rounded up to a whole app, so spread that whole
+        // target evenly across the available segment rather than retaining the
+        // queue's nominal interval. For example, eight apps in two hours should
+        // have a 15-minute timer even if the unrounded queue rate produced 7.3.
+        for (let appNumber = 1; appNumber <= target.expectedApps; appNumber += 1) {
+          const dueSeconds = start * 60 + (target.secondsPerApp * appNumber);
+          slots.push({
+            at: getScheduleDateAtMinutes(dueSeconds / 60),
+            previousAt: getScheduleDateAtMinutes((dueSeconds - target.secondsPerApp) / 60),
+            queue,
+            secondsPerApp: target.secondsPerApp,
+            appNumber,
+            expectedApps: target.expectedApps,
+            segment
+          });
+        }
+      }
+      return slots;
+    }
+
+    let toastTimeout;
+    let finalRoundTimeout;
+    let audioContext;
+
+    function dismissFinalRound() {
+      clearTimeout(finalRoundTimeout);
+      els.finalRound.classList.add("hidden");
+    }
+
+    function checkFinalRound(slot, now) {
+      if (!slot || slot.appNumber !== slot.expectedApps) return;
+      if (now < slot.previousAt || getPlannedSegmentAtNow()?.id !== slot.segment.id) return;
+      const segmentKey = `${localDateKey()}|${slot.segment.id}`;
+      if (state.lastFinalRoundSegment === segmentKey) return;
+
+      state.lastFinalRoundSegment = segmentKey;
+      saveState();
+      els.finalRoundQueue.textContent = slot.queue.name;
+      els.finalRoundDetail.textContent = `The final scheduled app for this segment is due by ${formatClock(slot.at.toISOString())}.`;
+      els.finalRound.classList.remove("hidden");
+      els.dismissFinalRoundBtn.focus();
+      clearTimeout(finalRoundTimeout);
+      finalRoundTimeout = setTimeout(dismissFinalRound, 6500);
+    }
+
+    function browserNotificationAvailable() {
+      return "Notification" in window && window.isSecureContext;
+    }
+
+    function renderNotificationStatus() {
+      const isLocalFile = location.protocol === "file:";
+      const permission = "Notification" in window ? Notification.permission : "unavailable";
+      const nativeReady = browserNotificationAvailable() && permission === "granted";
+      const mode = nativeReady ? "Browser notifications" : "In-page notification fallback";
+      els.notificationStatus.innerHTML = `<strong>${mode}</strong><br>${isLocalFile ? "This dashboard is open as a local file, so native permission may be unavailable or browser-dependent." : `Permission: ${escapeHtml(permission)}.`}`;
+      els.enableNotificationsBtn.disabled = !browserNotificationAvailable() || permission === "denied";
+      els.enableNotificationsBtn.textContent = permission === "granted" ? "Browser notifications enabled" : "Enable browser notifications";
+      els.notificationSound.checked = state.notificationSound !== false;
+      els.notificationReminders.checked = state.notificationsEnabled === true;
+    }
+
+    function playNotificationSound() {
+      if (state.notificationSound === false) return;
+      try {
+        audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+        const start = audioContext.currentTime;
+        [660, 880].forEach((frequency, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          oscillator.frequency.value = frequency;
+          gain.gain.setValueAtTime(.0001, start + index * .14);
+          gain.gain.exponentialRampToValueAtTime(.16, start + index * .14 + .02);
+          gain.gain.exponentialRampToValueAtTime(.0001, start + index * .14 + .13);
+          oscillator.connect(gain).connect(audioContext.destination);
+          oscillator.start(start + index * .14);
+          oscillator.stop(start + index * .14 + .14);
+        });
+      } catch { /* The visible fallback still works when audio is blocked. */ }
+    }
+
+    function showInPageNotification(title, message) {
+      els.notificationToastTitle.textContent = title;
+      els.notificationToastMessage.textContent = message;
+      els.notificationToast.classList.remove("hidden");
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => els.notificationToast.classList.add("hidden"), 7000);
+    }
+
+    function sendNotification(title, message) {
+      let nativeSent = false;
+      if (browserNotificationAvailable() && Notification.permission === "granted") {
+        try {
+          const notification = new Notification(title, { body: message, tag: "queue-target", renotify: true });
+          notification.onclick = () => { window.focus(); notification.close(); };
+          nativeSent = true;
+        } catch { /* Fall through to the reliable in-page notification. */ }
+      }
+      if (!nativeSent) showInPageNotification(title, message);
+      playNotificationSound();
+    }
+
+    async function enableBrowserNotifications() {
+      state.notificationsEnabled = true;
+      if (!browserNotificationAvailable()) {
+        saveState();
+        renderNotificationStatus();
+        showInPageNotification("Fallback enabled", "Native notifications are unavailable here; in-page reminders will be used.");
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      saveState();
+      renderNotificationStatus();
+      if (permission === "granted") sendNotification("Notifications enabled", "Scheduled target reminders are ready.");
+      else showInPageNotification("Fallback enabled", "Browser permission was not granted; in-page reminders will be used.");
+    }
+
+    function checkDueNotifications() {
+      if (!state.notificationsEnabled) return;
+      const now = nowDate();
+      const currentSegment = getSegmentAtDate(now, true);
+      const dueSlots = getScheduledCompletionSlots().filter(slot => slot.segment.id === currentSegment?.id && slot.at <= now);
+      const latest = dueSlots.at(-1);
+      if (!latest) return;
+      const slotKey = `${localDateKey()}|${latest.segment.id}|${latest.at.toISOString()}`;
+      if (state.lastNotifiedSlot === slotKey) return;
+      state.lastNotifiedSlot = slotKey;
+      saveState();
+      sendNotification("App target due", `${latest.queue.name} target reached at ${formatClock(latest.at.toISOString())}.`);
+    }
+
+    function renderTimer() {
+      const now = nowDate();
+      const plannedSegment = getPlannedSegmentAtNow();
+      const plannedQueue = plannedSegment ? getQueue(plannedSegment.queueId) : null;
+      const slots = getScheduledCompletionSlots();
+      const currentSlots = plannedSegment ? slots.filter(slot => slot.segment.id === plannedSegment.id) : [];
+      const nextSlot = currentSlots.find(slot => slot.at.getTime() > now.getTime());
+      checkFinalRound(nextSlot, now);
+      if (!nextSlot) {
+        els.timerDisplay.textContent = plannedQueue ? plannedQueue.name : "--:--";
+        els.timerCaption.textContent = !plannedQueue
+          ? "Remaining"
+          : (isProductiveQueue(plannedQueue) ? "Segment target complete" : "Non-productive activity");
+        els.timerEtc.textContent = "--:--";
+        els.timerTarget.textContent = "--:--";
+        els.timerDisplay.classList.remove("overdue");
+        els.timerProgress.style.width = "0%";
+        els.trackerStartedAt.textContent = state.activeQueueStartedAt ? formatClock(state.activeQueueStartedAt) : "Current plan";
+        document.title = BASE_TITLE;
+        return;
+      }
+
+      const remaining = (nextSlot.at.getTime() - now.getTime()) / 1000;
+      const timerText = formatDuration(remaining);
+      els.timerDisplay.textContent = timerText;
+      els.timerCaption.textContent = `Remaining · ${nextSlot.queue.name}`;
+      els.timerEtc.textContent = formatClock(nextSlot.at.toISOString());
+      els.timerTarget.textContent = formatDuration(nextSlot.secondsPerApp);
+      els.timerDisplay.classList.remove("overdue");
+      // Keep the bar in the same countdown direction as the displayed time:
+      // full at the start of a target window and empty when the target is due.
+      const remainingProgress = (remaining / nextSlot.secondsPerApp) * 100;
+      els.timerProgress.style.width = `${Math.min(100, Math.max(0, remainingProgress))}%`;
+
+      els.trackerStartedAt.textContent = state.activeQueueStartedAt ? formatClock(state.activeQueueStartedAt) : "Current plan";
+      document.title = `${timerText} · ${nextSlot.queue.name} - ${BASE_TITLE}`;
+    }
+
+    function renderAll() {
+      renderQueueOptions();
+      renderQueues();
+      renderSegments();
+      renderCompletionHistory();
+      renderArchiveHistory();
+      renderStats();
+      renderDayTimeline();
+      renderBreakdown();
+      renderLiveTracker();
+      renderCurrentSegmentDetails();
+      renderTimer();
+      renderNotificationStatus();
+      saveState();
+    }
+
+    function addQueue() {
+      const name = els.queueName.value.trim();
+      const rate = Number(els.queueRate.value);
+      const color = els.queueColor.value || "#14b8a6";
+
+      if (!name || Number.isNaN(rate) || rate < 0) return alert("Enter a queue name and a valid apps-per-hour expectation. Zero is allowed for non-productive queues.");
+
+      state.queues.push({ id: crypto.randomUUID(), name, rate, color });
+      els.queueName.value = "";
+      els.queueRate.value = "";
+      logActivity("settings", `Added queue ${name} at ${rate} apps/hr.`);
+      renderAll();
+    }
+
+    function addSegment() {
+      const queueId = state.queues.find(queue => isProductiveQueue(queue))?.id || state.queues[0]?.id;
+      if (!queueId) return alert("Add a queue before building a schedule.");
+      const sorted = getSortedSegments();
+      const lastSegment = sorted.at(-1);
+      const shiftStart = minutesFromTime(state.shiftStart);
+      const lastStart = lastSegment ? minutesFromTime(lastSegment.start) : shiftStart - 30;
+      const increment = getQueue(lastSegment?.queueId)?.name === TEAM_BRIEFING_NAME ? TEAM_BRIEFING_MINUTES : 30;
+      const nextStart = Math.max(Number.isFinite(shiftStart) ? shiftStart : 0, Number.isFinite(lastStart) ? lastStart + increment : 0);
+      const start = timeFromMinutes(nextStart);
+      const queue = getQueue(queueId);
+      state.segments.push({ id: crypto.randomUUID(), queueId, start });
+      sortSegments(false);
+      logActivity("plan", `Added ${queue?.name || "queue"} activity at ${start}.`);
+      renderAll();
+    }
+
+    function sortSegments(shouldLog = true) {
+      state.segments.sort((a, b) => minutesFromTime(a.start) - minutesFromTime(b.start));
+      if (shouldLog) logActivity("plan", "Sorted queue segments.");
+    }
+
+    function completeApp() {
+      const queueId = els.completionQueue.value;
+      const uid = els.completionUid.value.trim();
+      const outcome = els.completionOutcome?.value?.trim() || "";
+      const queue = getQueue(queueId);
+      if (!queue || !isProductiveQueue(queue)) return alert("Choose a productive queue for the completed app.");
+      if (!uid) return alert("Enter a UID for the completed app.");
+      if (!outcome) return alert("Select an outcome before hitting App Complete.");
+
+      const segment = getCurrentSegment();
+      const currentIso = nowIso();
+      const completion = {
+        id: crypto.randomUUID(),
+        at: currentIso,
+        queueId,
+        segmentId: segment?.id || null,
+        uid,
+        outcome,
+        activeQueueStartedAt: state.activeQueueStartedAt || null,
+        rationale: document.getElementById("output")?.value || ""
+      };
+      state.completions.push(completion);
+
+      els.completionUid.value = "";
+      if (els.completionOutcome) els.completionOutcome.value = "";
+      logActivity("complete", `Completed app ${uid} (${outcome}) from ${queue.name}.`);
+      renderAll();
+    }
+
+    function exportCompletionsCsv() {
+      if (!state.completions.length) return alert("No completion history to export yet.");
+      const lines = ["uid,queue,outcome,recorded_at,queue_selected_at,planned_queue,planned_segment,rationale"];
+
+      for (const app of state.completions) {
+        const queue = getQueue(app.queueId);
+        const segment = app.segmentId ? state.segments.find(item => item.id === app.segmentId) : null;
+        const plannedQueue = segment ? getQueue(segment.queueId) : null;
+        const row = [
+          app.uid || "",
+          queue?.name || "",
+          app.outcome || "",
+          app.at,
+          app.activeQueueStartedAt || "",
+          plannedQueue?.name || "",
+          segment ? `${segment.start}-${getSegmentEnd(segment)}` : "",
+          app.rationale || ""
+        ].map(value => `"${String(value).replaceAll('"', '""')}"`).join(",");
+        lines.push(row);
+      }
+
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `queue-history-${nowIso().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      logActivity("export", `Exported CSV for ${state.completions.length} completions.`);
+    }
+
+    function saveSnapshot() {
+      state.startingSnapshot = {
+        at: nowIso(),
+        queues: structuredClone(state.queues),
+        segments: structuredClone(state.segments),
+        shiftStart: state.shiftStart,
+        shiftEnd: state.shiftEnd,
+        expectedFullDay: getExpectedFullDay()
+      };
+      logActivity("snapshot", "Saved current plan as start-of-day snapshot.");
+      renderAll();
+    }
+
+    function showReview() {
+      const startExpected = state.startingSnapshot?.expectedFullDay ?? null;
+      const currentExpected = getExpectedFullDay();
+      const completed = state.completions.length;
+      const currentVariance = completed - currentExpected;
+      const snapshotTime = state.startingSnapshot ? formatClock(state.startingSnapshot.at) : "Not saved";
+
+      const startSegmentsHtml = state.startingSnapshot?.segments?.length
+        ? state.startingSnapshot.segments.map(segment => {
+          const queue = state.startingSnapshot.queues.find(q => q.id === segment.queueId);
+          return `<div class="mini-table-row"><strong>${escapeHtml(queue?.name || "Missing queue")}</strong><span>${segment.start} to ${getSnapshotSegmentEnd(segment)}</span><span>${getSnapshotSegmentExpected(segment).toFixed(1)} apps</span></div>`;
+        }).join("")
+        : `<p class="subtle">No start snapshot saved.</p>`;
+
+      const currentSegmentsHtml = state.segments.length
+        ? state.segments.map(segment => {
+          const queue = getQueue(segment.queueId);
+          return `<div class="mini-table-row"><strong>${escapeHtml(queue?.name || "Missing queue")}</strong><span>${segment.start} to ${getSegmentEnd(segment)}</span><span>${getSegmentExpectedWholeApps(segment)} apps</span></div>`;
+        }).join("")
+        : `<p class="subtle">No current plan segments.</p>`;
+
+      const adherenceHtml = getQueueSwitchRows().length
+        ? getQueueSwitchRows().map(entry => {
+          const queue = getQueue(entry.queueId);
+          const planned = entry.plannedQueueId ? getQueue(entry.plannedQueueId) : null;
+          const status = planned ? (planned.id === entry.queueId ? "On plan" : `Off plan · planned ${planned.name}`) : "Outside productive plan";
+          return `<div class="mini-table-row"><strong>${formatClock(entry.at)} · ${escapeHtml(queue?.name || "Missing queue")}</strong><span>${escapeHtml(status)}</span><span>${escapeHtml(entry.source || "manual")}</span></div>`;
+        }).join("")
+        : `<p class="subtle">No manual queue changes were logged.</p>`;
+
+      els.reviewContent.innerHTML = `
+        <section class="stats-grid">
+          <article class="stat"><div class="value">${completed}</div><div class="label">Completed today</div></article>
+          <article class="stat"><div class="value">${currentExpected.toFixed(1)}</div><div class="label">Current expected total</div></article>
+          <article class="stat ${currentVariance >= 0 ? "good" : "bad"}"><div class="value">${currentVariance >= 0 ? "+" : ""}${currentVariance.toFixed(1)}</div><div class="label">Final variance</div></article>
+          <article class="stat"><div class="value">${startExpected === null ? "--" : startExpected.toFixed(1)}</div><div class="label">Start expected total</div></article>
+        </section>
+        <section class="panel"><h3>Start-of-day plan · ${snapshotTime}</h3><div class="table-like">${startSegmentsHtml}</div></section>
+        <section class="panel"><h3>Manual queue adherence log</h3><div class="table-like">${adherenceHtml}</div></section>
+        <section class="panel"><h3>Current / end-of-day plan</h3><div class="table-like">${currentSegmentsHtml}</div></section>
+      `;
+
+      els.reviewDialog.showModal();
+    }
+
+    function getSnapshotSegmentExpected(segment) {
+      return getSegmentTargetPlan(
+        segment,
+        state.startingSnapshot.segments,
+        state.startingSnapshot.queues,
+        state.startingSnapshot.shiftEnd || state.shiftEnd
+      ).expectedApps;
+    }
+
+    function getSnapshotSegmentEnd(segment) {
+      return timeFromMinutes(getSegmentBounds(segment, state.startingSnapshot.segments, state.startingSnapshot.shiftEnd || state.shiftEnd).end);
+    }
+
+    function resetDay(skipConfirmation = false, openSchedule = false) {
+      if (!skipConfirmation && !confirm("Reset today’s segments, completions, logs, and snapshot? Queue settings will be kept.")) return;
+      state.archive.push({
+        id: crypto.randomUUID(),
+        archivedAt: nowIso(),
+        label: `Archive ${new Date().toLocaleString()}`,
+        queues: structuredClone(state.queues),
+        segments: structuredClone(state.segments),
+        completions: structuredClone(state.completions),
+        activityLog: structuredClone(state.activityLog),
+        queueSwitchLog: structuredClone(getQueueSwitchRows()),
+        startingSnapshot: structuredClone(state.startingSnapshot),
+        shiftStart: state.shiftStart,
+        shiftEnd: state.shiftEnd
+      });
+      const briefingQueue = ensureTeamBriefingQueue();
+      state.shiftStart = DEFAULT_SHIFT_START;
+      state.shiftEnd = DEFAULT_SHIFT_END;
+      state.segments = [{ id: crypto.randomUUID(), queueId: briefingQueue.id, start: DEFAULT_SHIFT_START }];
+      state.completions = [];
+      state.activityLog = [];
+      state.startingSnapshot = null;
+      state.activeQueueId = null;
+      state.activeQueueStartedAt = null;
+      state.queueSwitchLog = [];
+      state.timerStartedAt = null;
+      state.timerQueueId = null;
+      state.lastNotifiedSlot = null;
+      state.lastFinalRoundSegment = null;
+      state.dayDate = localDateKey();
+      renderAll();
+      if (openSchedule) setTimeout(() => els.planDialog.showModal(), 0);
+    }
+
+    function checkForNewDay() {
+      if (state.dayDate !== localDateKey() && !els.newDayDialog.open) els.newDayDialog.showModal();
+    }
+
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.addEventListener("click", event => {
+      if (!els.topMenuPanel.contains(event.target) && event.target !== els.menuBtn) {
+        els.topMenuPanel.classList.add("hidden");
+      }
+      const editQueueId = event.target.dataset.editQueue;
+      const deleteQueueId = event.target.dataset.deleteQueue;
+      const selectSegmentId = event.target.dataset.selectSegment;
+      const deleteSegmentId = event.target.dataset.deleteSegment;
+      const deleteCompletionId = event.target.dataset.deleteCompletion;
+
+      if (editQueueId) {
+        const queue = getQueue(editQueueId);
+        if (!queue) return;
+        const name = queue.locked ? queue.name : prompt("Queue name", queue.name);
+        if (!name) return;
+        const rate = queue.locked ? 0 : Number(prompt("Apps per hour", queue.rate));
+        if (Number.isNaN(rate) || rate < 0) return alert("Rate must be zero or a positive number.");
+        const color = prompt("Queue colour hex code", queue.color || "#14b8a6") || queue.color || "#14b8a6";
+        queue.name = name.trim();
+        queue.rate = rate;
+        queue.color = color;
+        logActivity("settings", `Updated queue ${queue.name} to ${rate} apps/hr.`);
+        renderAll();
+      }
+
+      if (deleteQueueId) {
+        const queue = getQueue(deleteQueueId);
+        if (queue?.locked) return alert("Built-in activities cannot be deleted.");
+        const inUse = state.segments.some(segment => segment.queueId === deleteQueueId);
+        if (inUse) return alert("This queue is used in today’s plan. Delete or edit those segments first.");
+        state.queues = state.queues.filter(queue => queue.id !== deleteQueueId);
+        logActivity("settings", `Deleted queue ${queue?.name || "queue"}.`);
+        renderAll();
+      }
+
+      if (selectSegmentId) {
+        const segment = state.segments.find(item => item.id === selectSegmentId);
+        const queue = segment ? getQueue(segment.queueId) : null;
+        if (!queue || !isProductiveQueue(queue)) return alert("Choose a productive queue to track as live work.");
+        setActiveQueue(queue.id, "segment shortcut");
+        renderAll();
+      }
+
+      if (deleteCompletionId) {
+        const completion = state.completions.find(item => item.id === deleteCompletionId);
+        if (!completion) return;
+        state.completions = state.completions.filter(item => item.id !== deleteCompletionId);
+        logActivity("complete", `Deleted completion ${completion.uid || completion.id}.`);
+        renderAll();
+      }
+      if (deleteSegmentId) {
+        state.segments = state.segments.filter(segment => segment.id !== deleteSegmentId);
+        logActivity("plan", "Deleted segment from plan.");
+        renderAll();
+      }
+    });
+
+    els.settingsBtn.addEventListener("click", () => els.settingsDialog.showModal());
+    els.notificationsBtn.addEventListener("click", () => { renderNotificationStatus(); els.notificationDialog.showModal(); });
+    els.enableNotificationsBtn.addEventListener("click", enableBrowserNotifications);
+    els.testNotificationBtn.addEventListener("click", () => {
+      sendNotification("Test notification", "Queue Performance Dashboard reminders are working.");
+    });
+    els.dismissFinalRoundBtn.addEventListener("click", dismissFinalRound);
+    els.finalRound.addEventListener("click", event => {
+      if (event.target === els.finalRound) dismissFinalRound();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !els.finalRound.classList.contains("hidden")) dismissFinalRound();
+    });
+    els.notificationReminders.addEventListener("change", () => {
+      state.notificationsEnabled = els.notificationReminders.checked;
+      saveState();
+    });
+    els.notificationSound.addEventListener("change", () => {
+      state.notificationSound = els.notificationSound.checked;
+      saveState();
+      if (state.notificationSound) playNotificationSound();
+    });
+    els.menuBtn.addEventListener("click", () => els.topMenuPanel.classList.toggle("hidden"));
+    els.planBtn.addEventListener("click", () => els.planDialog.showModal());
+    els.archiveBtn.addEventListener("click", () => els.archiveDialog.showModal());
+    els.addQueueBtn.addEventListener("click", addQueue);
+    els.addSegmentBtn.addEventListener("click", addSegment);
+    els.segmentList.addEventListener("change", event => {
+      const segmentId = event.target.dataset.segmentQueue;
+      const segment = state.segments.find(item => item.id === segmentId);
+      if (!segment) return;
+      segment.queueId = event.target.value;
+      logActivity("plan", `Changed the ${segment.start} activity to ${getQueue(segment.queueId)?.name || "queue"}.`);
+      renderAll();
+    });
+    els.segmentList.addEventListener("focusout", event => {
+      const segmentId = event.target.dataset.segmentStart;
+      const segment = state.segments.find(item => item.id === segmentId);
+      if (!segment || segment.start === event.target.value) return;
+      const start = event.target.value;
+      segment.start = start;
+      sortSegments(false);
+      logActivity("plan", `Moved an activity to ${start}.`);
+      renderAll();
+    });
+    function updateShift() {
+      const start = els.shiftStart.value;
+      const end = els.shiftEnd.value;
+      if (state.shiftStart === start && state.shiftEnd === end) return;
+      state.shiftStart = start;
+      state.shiftEnd = end;
+      logActivity("plan", `Updated shift to ${start}-${end}.`);
+      renderAll();
+    }
+    function validateScheduleBeforeClose() {
+      const shiftStart = minutesFromTime(state.shiftStart);
+      const shiftEnd = minutesFromTime(state.shiftEnd);
+      if (!state.shiftStart || !state.shiftEnd || !Number.isFinite(shiftStart) || !Number.isFinite(shiftEnd) || shiftEnd <= shiftStart) {
+        alert("Shift end must be after shift start.");
+        (!state.shiftStart ? els.shiftStart : els.shiftEnd).focus();
+        return false;
+      }
+
+      const invalidSegment = state.segments.find(segment => {
+        const start = minutesFromTime(segment.start);
+        return !segment.start || !Number.isFinite(start) || start < shiftStart || start >= shiftEnd;
+      });
+      if (invalidSegment) {
+        alert("Activity starts must fall within the shift.");
+        els.segmentList.querySelector(`[data-segment-start="${invalidSegment.id}"]`)?.focus();
+        return false;
+      }
+
+      const seenStarts = new Set();
+      const duplicateSegment = state.segments.find(segment => {
+        if (seenStarts.has(segment.start)) return true;
+        seenStarts.add(segment.start);
+        return false;
+      });
+      if (duplicateSegment) {
+        alert("Two activities cannot start at the same time.");
+        els.segmentList.querySelector(`[data-segment-start="${duplicateSegment.id}"]`)?.focus();
+        return false;
+      }
+      return true;
+    }
+    els.shiftStart.addEventListener("blur", updateShift);
+    els.shiftEnd.addEventListener("blur", updateShift);
+    els.planForm.addEventListener("submit", event => {
+      if (!validateScheduleBeforeClose()) event.preventDefault();
+    });
+    els.planDialog.addEventListener("cancel", event => {
+      if (!validateScheduleBeforeClose()) event.preventDefault();
+    });
+    els.completeAppBtn.addEventListener("click", completeApp);
+    els.completionQueue.addEventListener("change", () => {
+      setActiveQueue(els.completionQueue.value, "manual");
+      renderAll();
+    });
+    els.snapshotBtn.addEventListener("click", saveSnapshot);
+    els.endDayBtn.addEventListener("click", showReview);
+    els.completedAppsBtn.addEventListener("click", () => els.completionDialog.showModal());
+    els.detailsBtn.addEventListener("click", () => els.detailsDialog.showModal());
+    els.exportCsvBtn.addEventListener("click", exportCompletionsCsv);
+    els.resetBtn.addEventListener("click", () => resetDay());
+    els.newDayExportBtn.addEventListener("click", () => {
+      if (state.completions.length || getQueueSwitchRows().length) exportCompletionsCsv();
+      els.newDayDialog.close();
+      resetDay(true, true);
+    });
+    els.newDayResetBtn.addEventListener("click", () => {
+      els.newDayDialog.close();
+      resetDay(true, true);
+    });
+    els.newDaySkipBtn.addEventListener("click", () => {
+      state.dayDate = localDateKey();
+      saveState();
+      els.newDayDialog.close();
+      els.planDialog.showModal();
+    });
+
+
+    els.completionUid.value = "";
+    if (els.completionOutcome) els.completionOutcome.value = "";
+    renderAll();
+    checkForNewDay();
+    setInterval(() => { renderTimer(); checkDueNotifications(); }, 1000);
+    setInterval(checkForNewDay, 60000);
+  
+</script><script>
+{
+
+  const STORAGE_KEY = 'rationale-tool-v2-state';
+
+const defaultRiskFactors = [
+  'Adverse media',
+  'Lacking Understanding of Business',
+  'Inconsistent information',
+  'Document quality concerns',
+  'Unusual account purpose',
+  'Source of funds concern',
+  'High Risk Jurisdiction involvement'
+];
+
+const defaultCifasOptions = ['CIFAS checked', 'No check required', 'N/A'];
+const defaultMacros = [
+  'Legitimacy of business plausible.',
+  'Further comfort gained from supporting evidence.'
+];
+
+const presetThemes = {
+  light: {
+    bg: '#edf2f8',
+    panel: '#f8fbff',
+    panelAlt: '#e8eef7',
+    fieldBg: '#ffffff',
+    border: '#c8d2e2',
+    text: '#172231',
+    muted: '#4f6078',
+    accent: '#2e7de0',
+    bgStart: '#e8eff9',
+    bgEnd: '#dce6f6'
+  },
+  dark: {
+    bg: '#0f1115',
+    panel: '#171a21',
+    panelAlt: '#1f2430',
+    fieldBg: '#10141c',
+    border: '#30384a',
+    text: '#e8ecf1',
+    muted: '#99a3b3',
+    accent: '#7cc4ff',
+    bgStart: '#0d1016',
+    bgEnd: '#141925'
+  }
+};
+
+const output = document.getElementById('output');
+const generateBtn = document.getElementById('generateBtn');
+const copyBtn = document.getElementById('copyBtn');
+const clearBtn = document.getElementById('clearBtn');
+const hardResetBtn = document.getElementById('hardResetBtn');
+const editDefaultsBtn = document.getElementById('editDefaultsBtn');
+const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const toggleMacrosBtn = document.getElementById('toggleMacrosBtn');
+const settingsModal = document.getElementById('settingsModal');
+const macroToolbar = document.getElementById('macroToolbar');
+const macroChipGrid = document.getElementById('macroChipGrid');
+const autoGenerate = document.getElementById('autoGenerate');
+const includeEmptySections = document.getElementById('includeEmptySections');
+const useMarkdownHeadings = document.getElementById('useMarkdownHeadings');
+const newRiskFactor = document.getElementById('newRiskFactor');
+const addRiskFactorBtn = document.getElementById('addRiskFactorBtn');
+const riskFactorManager = document.getElementById('riskFactorManager');
+const riskFactorsContainer = document.getElementById('riskFactors');
+const cifasChecksContainer = document.getElementById('cifasChecks');
+const newCifasOption = document.getElementById('newCifasOption');
+const addCifasOptionBtn = document.getElementById('addCifasOptionBtn');
+const cifasOptionManager = document.getElementById('cifasOptionManager');
+const newMacro = document.getElementById('newMacro');
+const addMacroBtn = document.getElementById('addMacroBtn');
+const macroManager = document.getElementById('macroManager');
+const themeMode = document.getElementById('themeMode');
+const accentColor = document.getElementById('accentColor');
+const bgColor = document.getElementById('bgColor');
+const panelColor = document.getElementById('panelColor');
+const textboxColor = document.getElementById('textboxColor');
+const textColor = document.getElementById('textColor');
+const outputPreview = document.getElementById('outputPreview');
+
+function syncGenerateButtonVisibility() {
+  generateBtn.classList.toggle('hidden', autoGenerate.checked);
+}
+
+let riskFactorOptions = [...defaultRiskFactors];
+let cifasOptions = [...defaultCifasOptions];
+let cifasChecks = [''];
+let macroOptions = [...defaultMacros];
+let lastFocusedTextField = null;
+let isMacroToolbarOpen = false;
+let activeThemeMode = 'light';
+let customTheme = {
+  accent: presetThemes.light.accent,
+  bg: presetThemes.light.bg,
+  panel: presetThemes.light.panel,
+  fieldBg: presetThemes.light.fieldBg,
+  text: presetThemes.light.text
+};
+
+const defaultClearFormText = {
+  decision: '',
+  riskLevel: '',
+  summary: '',
+  evidence: '',
+  actionTaken: '',
+  rationaleNotes: '',
+  cifasChecks: [''],
+  factaCrsCheck: '',
+  enabledRiskFactors: [...defaultRiskFactors]
+};
+
+let clearFormTextDefaults = { ...defaultClearFormText };
+
+const formIds = [
+  'decision', 'riskLevel', 'summary', 'evidence', 'actionTaken', 'rationaleNotes', 'factaCrsCheck',
+  'includeEmptySections', 'useMarkdownHeadings', 'autoGenerate',
+  'themeMode', 'accentColor', 'bgColor', 'panelColor', 'textboxColor', 'textColor'
+];
+
+function updateThemeInputsDisabled() {
+  const isCustom = themeMode.value === 'custom';
+  [accentColor, bgColor, panelColor, textboxColor, textColor].forEach(input => {
+    input.disabled = !isCustom;
+  });
+}
+
+function applyTheme(mode = 'light') {
+  activeThemeMode = mode;
+  let theme = mode === 'dark' ? presetThemes.dark : presetThemes.light;
+
+  if (mode === 'custom') {
+    theme = {
+      ...presetThemes.light,
+      accent: customTheme.accent,
+      bg: customTheme.bg,
+      panel: customTheme.panel,
+      fieldBg: customTheme.fieldBg,
+      text: customTheme.text,
+      panelAlt: customTheme.panel,
+      muted: customTheme.text,
+      border: '#c8d2e2',
+      bgStart: customTheme.bg,
+      bgEnd: customTheme.bg
+    };
+  }
+
+  const root = document.documentElement;
+  root.style.setProperty('--bg', theme.bg);
+  root.style.setProperty('--panel', theme.panel);
+  root.style.setProperty('--panel-alt', theme.panelAlt);
+  root.style.setProperty('--field-bg', theme.fieldBg);
+  root.style.setProperty('--border', theme.border);
+  root.style.setProperty('--text', theme.text);
+  root.style.setProperty('--muted', theme.muted);
+  root.style.setProperty('--accent', theme.accent);
+  root.style.setProperty('--bg-gradient-start', theme.bgStart);
+  root.style.setProperty('--bg-gradient-end', theme.bgEnd);
+
+  themeMode.value = mode;
+  accentColor.value = customTheme.accent;
+  bgColor.value = customTheme.bg;
+  panelColor.value = customTheme.panel;
+  textboxColor.value = customTheme.fieldBg;
+  textColor.value = customTheme.text;
+  updateThemeInputsDisabled();
+}
+
+function syncCustomThemeFromInputs() {
+  customTheme = {
+    accent: accentColor.value,
+    bg: bgColor.value,
+    panel: panelColor.value,
+    fieldBg: textboxColor.value,
+    text: textColor.value
+  };
+}
+
+function setSettingsModalOpen(isOpen) {
+  settingsModal.classList.toggle('open', isOpen);
+  settingsModal.setAttribute('aria-hidden', String(!isOpen));
+}
+
+function positionMacroToolbar() {
+  if (!isMacroToolbarOpen) return;
+
+  const defaultAnchorRect = toggleMacrosBtn.getBoundingClientRect();
+  const anchorRect = lastFocusedTextField instanceof HTMLTextAreaElement || lastFocusedTextField instanceof HTMLInputElement
+    ? lastFocusedTextField.getBoundingClientRect()
+    : defaultAnchorRect;
+
+  const toolbarWidth = Math.min(420, window.innerWidth - 24);
+  const spacing = 10;
+  const maxLeft = Math.max(12, window.innerWidth - toolbarWidth - 12);
+  const computedLeft = Math.min(Math.max(12, anchorRect.left), maxLeft);
+  let computedTop = anchorRect.bottom + spacing;
+
+  const projectedBottom = computedTop + macroToolbar.offsetHeight;
+  if (projectedBottom > window.innerHeight - 12) {
+    computedTop = Math.max(12, anchorRect.top - macroToolbar.offsetHeight - spacing);
+  }
+
+  macroToolbar.style.left = `${computedLeft}px`;
+  macroToolbar.style.top = `${computedTop}px`;
+}
+
+function setMacroToolbarOpen(isOpen) {
+  isMacroToolbarOpen = isOpen;
+  macroToolbar.classList.toggle('hidden', !isOpen);
+  if (isOpen) {
+    positionMacroToolbar();
+  }
+}
+
+function getCheckedValues(containerId) {
+  return [...document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`)].map(i => i.value);
+}
+
+function makeHeading(title) {
+  return useMarkdownHeadings.checked ? `### ${title}` : `${title.toUpperCase()}`;
+}
+
+function buildSection(title, lines) {
+  const cleaned = lines.map(v => (v || '').trim()).filter(Boolean);
+  if (!cleaned.length && !includeEmptySections.checked) return '';
+  const block = [makeHeading(title), ...cleaned].join('\n');
+  return block.trim();
+}
+
+function buildOutput() {
+  const riskFactors = getCheckedValues('riskFactors');
+  const decisionValue = document.getElementById('decision').value;
+  const isDeclineDecision = /decline/i.test(decisionValue);
+
+  const summaryLines = [
+    decisionValue && `**Decision:** ${decisionValue}`,
+    document.getElementById('summary').value && `**Rationale:** ${document.getElementById('summary').value}`,
+    isDeclineDecision && document.getElementById('riskLevel').value && `**Risk Level:** ${document.getElementById('riskLevel').value}`,
+  ];
+
+  const businessUnderstandingLines = isDeclineDecision
+    ? []
+    : [
+      document.getElementById('riskLevel').value && `**Risk Level:** ${document.getElementById('riskLevel').value}`,
+      document.getElementById('evidence').value && `**Business Understanding:** ${document.getElementById('evidence').value}`,
+      riskFactors.length ? `**Risk Factors:** ${riskFactors.join('; ')}` : '**Risk Factors:** No additional risk factors identified.',
+      document.getElementById('actionTaken').value && `**Action Taken:** ${document.getElementById('actionTaken').value}`,
+    ];
+
+  const additionalLines = [
+    document.getElementById('rationaleNotes').value && `**Links:** ${document.getElementById('rationaleNotes').value}`,
+    ...cifasChecks.filter(Boolean).map(value => `**CIFAS Check:** ${value}`),
+    document.getElementById('factaCrsCheck').value && `**FACTA/CRS Check:** ${document.getElementById('factaCrsCheck').value}`,
+  ];
+
+  const sections = [
+    buildSection('Summary of Decision', summaryLines),
+    !isDeclineDecision && buildSection('Do you understand the customers nature of business, is it plausible and have you addressed associated risk factors?', businessUnderstandingLines),
+    buildSection('Links/CIFAS', additionalLines)
+  ].filter(Boolean);
+
+  output.value = sections.join('\n\n');
+  renderOutputPreview(output.value);
+  saveState();
+  return output.value;
+}
+
+function formatInlineMarkdown(line) {
+  return line
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_match, label, rawUrl) => {
+      const href = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    })
+    .replace(/\+\+\+([^+]+)\+\+\+/g, '<span class="md-highlight-accent">$1</span>')
+    .replace(/!!!([^!]+)!!!/g, '<span class="md-highlight-amber">$1</span>')
+    .replace(/!!([^!]+)!!/g, '<span class="md-highlight-red">$1</span>')
+    .replace(/\+\+([^+]+)\+\+/g, '<span class="md-highlight-green">$1</span>')
+    .replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">$1</span>')
+    .replace(/\*([^*]+)\*/g, '<span class="md-italic">$1</span>');
+}
+
+function renderOutputPreview(markdownText) {
+  const safeText = escapeHtml(markdownText || '');
+  if (!safeText.trim()) {
+    outputPreview.innerHTML = '<p class="md-empty">Generated markdown preview appears here.</p>';
+    return;
+  }
+
+  const lines = safeText.split('\n');
+  const html = [];
+  let isInList = false;
+
+  lines.forEach(rawLine => {
+    const line = rawLine.trim();
+    if (!line) {
+      if (isInList) {
+        html.push('</ul>');
+        isInList = false;
+      }
+      return;
+    }
+
+    const h3 = line.match(/^###\s+(.+)/);
+    const h2 = line.match(/^##\s+(.+)/);
+    const h1 = line.match(/^#\s+(.+)/);
+    const bullet = line.match(/^-\s+(.+)/);
+
+    if (h1 || h2 || h3) {
+      if (isInList) {
+        html.push('</ul>');
+        isInList = false;
+      }
+      if (h1) html.push(`<h1>${formatInlineMarkdown(h1[1])}</h1>`);
+      else if (h2) html.push(`<h2>${formatInlineMarkdown(h2[1])}</h2>`);
+      else html.push(`<h3>${formatInlineMarkdown(h3[1])}</h3>`);
+      return;
+    }
+
+    if (bullet) {
+      if (!isInList) {
+        html.push('<ul>');
+        isInList = true;
+      }
+      html.push(`<li>${formatInlineMarkdown(bullet[1])}</li>`);
+      return;
+    }
+
+    if (isInList) {
+      html.push('</ul>');
+      isInList = false;
+    }
+    html.push(`<p>${formatInlineMarkdown(line)}</p>`);
+  });
+
+  if (isInList) html.push('</ul>');
+  outputPreview.innerHTML = html.join('');
+}
+
+function saveState() {
+  const state = {};
+  formIds.forEach(id => {
+    const el = document.getElementById(id);
+    state[id] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  state.riskFactors = getCheckedValues('riskFactors');
+  state.riskFactorOptions = riskFactorOptions;
+  state.cifasOptions = cifasOptions;
+  state.cifasChecks = cifasChecks;
+  state.macroOptions = macroOptions;
+  state.theme = { mode: activeThemeMode, custom: customTheme };
+  state.clearFormTextDefaults = clearFormTextDefaults;
+  state.output = output.value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function restoreState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const state = JSON.parse(raw);
+    formIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!(id in state)) return;
+      if (el.type === 'checkbox') el.checked = !!state[id];
+      else el.value = state[id];
+    });
+
+    if (Array.isArray(state.riskFactorOptions) && state.riskFactorOptions.length) {
+      riskFactorOptions = [...state.riskFactorOptions];
+    }
+
+    if (Array.isArray(state.cifasOptions) && state.cifasOptions.length) {
+      cifasOptions = [...state.cifasOptions];
+    }
+
+    if (Array.isArray(state.macroOptions)) {
+      macroOptions = [...state.macroOptions];
+    }
+
+    if (state.theme?.custom) {
+      customTheme = { ...customTheme, ...state.theme.custom };
+    }
+
+    if (state.clearFormTextDefaults) {
+      clearFormTextDefaults = {
+        ...defaultClearFormText,
+        ...state.clearFormTextDefaults
+      };
+      if (!Array.isArray(state.clearFormTextDefaults.cifasChecks) && state.clearFormTextDefaults.cifasCheck) {
+        clearFormTextDefaults.cifasChecks = [state.clearFormTextDefaults.cifasCheck];
+      }
+    }
+
+    applyTheme(state.theme?.mode || 'light');
+
+    const savedRiskFactors = Array.isArray(state.riskFactors) ? state.riskFactors : null;
+    renderRiskFactors(savedRiskFactors);
+    cifasChecks = Array.isArray(state.cifasChecks) && state.cifasChecks.length
+      ? [...state.cifasChecks]
+      : [state.cifasCheck || ''];
+    renderCifasChecks();
+    renderMacros();
+
+    output.value = state.output || '';
+    renderOutputPreview(output.value);
+  } catch (err) {
+    console.error('Could not restore state', err);
+  }
+}
+
+function renderRiskFactors(checkedValues = null) {
+  const hasExistingOptions = !!riskFactorsContainer.querySelector('input[type="checkbox"]');
+  const checkedSet = checkedValues
+    ? new Set(checkedValues)
+    : new Set(getCheckedValues('riskFactors'));
+  riskFactorsContainer.innerHTML = '';
+  riskFactorManager.innerHTML = '';
+
+  riskFactorOptions.forEach(factor => {
+    const option = document.createElement('label');
+    option.className = 'pill';
+    option.innerHTML = `<input type="checkbox" value="${escapeHtml(factor)}" /> ${escapeHtml(factor)}`;
+    riskFactorsContainer.appendChild(option);
+
+    const checkbox = option.querySelector('input[type="checkbox"]');
+    if (checkedValues) {
+      checkbox.checked = checkedSet.has(factor);
+    } else if (!hasExistingOptions) {
+      checkbox.checked = true;
+    } else {
+      checkbox.checked = checkedSet.has(factor);
+    }
+
+    const managerItem = document.createElement('div');
+    managerItem.className = 'risk-factor-item';
+
+    const factorInput = document.createElement('input');
+    factorInput.type = 'text';
+    factorInput.value = factor;
+    factorInput.className = 'entry-text';
+    factorInput.setAttribute('aria-label', `Edit risk factor ${factor}`);
+    managerItem.appendChild(factorInput);
+
+    const actions = document.createElement('div');
+    actions.className = 'settings-item-actions';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', () => {
+      const nextValue = factorInput.value.trim();
+      if (!nextValue) {
+        factorInput.value = factor;
+        return;
+      }
+      if (nextValue !== factor && riskFactorOptions.includes(nextValue)) {
+        factorInput.value = factor;
+        return;
+      }
+      riskFactorOptions = riskFactorOptions.map(item => (item === factor ? nextValue : item));
+      renderRiskFactors();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(saveBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove';
+    removeBtn.classList.add('btn-danger');
+    removeBtn.addEventListener('click', () => {
+      riskFactorOptions = riskFactorOptions.filter(item => item !== factor);
+      renderRiskFactors();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(removeBtn);
+    managerItem.appendChild(actions);
+    riskFactorManager.appendChild(managerItem);
+  });
+}
+
+function renderCifasChecks() {
+  cifasChecksContainer.innerHTML = '';
+
+  cifasChecks.forEach((value, index) => {
+    const row = document.createElement('div');
+    row.className = 'cifas-check-row';
+
+    const label = document.createElement('label');
+    const title = document.createElement('span');
+    title.textContent = index === 0 ? 'CIFAS Check' : `Additional CIFAS Check ${index}`;
+    label.appendChild(title);
+
+    const select = document.createElement('select');
+    select.className = 'cifas-check-select';
+    select.setAttribute('aria-label', title.textContent);
+    select.innerHTML = '<option value="">Select an option</option>';
+    cifasOptions.forEach(option => select.add(new Option(option, option)));
+    select.value = cifasOptions.includes(value) ? value : '';
+    select.addEventListener('change', () => {
+      cifasChecks[index] = select.value;
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    label.appendChild(select);
+    row.appendChild(label);
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = `icon-btn cifas-check-action${index ? ' remove' : ''}`;
+    action.textContent = index ? '−' : '+';
+    action.title = index ? 'Remove this CIFAS check' : 'Add another CIFAS check';
+    action.setAttribute('aria-label', action.title);
+    action.addEventListener('click', () => {
+      if (index === 0) cifasChecks.push('');
+      else cifasChecks.splice(index, 1);
+      renderCifasChecks();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    row.appendChild(action);
+    cifasChecksContainer.appendChild(row);
+  });
+}
+
+function renderCifasOptions() {
+  cifasOptionManager.innerHTML = '';
+
+  cifasOptions.forEach(option => {
+    const managerItem = document.createElement('div');
+    managerItem.className = 'risk-factor-item';
+
+    const optionInput = document.createElement('input');
+    optionInput.type = 'text';
+    optionInput.value = option;
+    optionInput.className = 'entry-text';
+    optionInput.setAttribute('aria-label', `Edit CIFAS option ${option}`);
+    managerItem.appendChild(optionInput);
+
+    const actions = document.createElement('div');
+    actions.className = 'settings-item-actions';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', () => {
+      const nextValue = optionInput.value.trim();
+      if (!nextValue) {
+        optionInput.value = option;
+        return;
+      }
+      if (nextValue !== option && cifasOptions.includes(nextValue)) {
+        optionInput.value = option;
+        return;
+      }
+      cifasOptions = cifasOptions.map(item => (item === option ? nextValue : item));
+      cifasChecks = cifasChecks.map(value => (value === option ? nextValue : value));
+      renderCifasOptions();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(saveBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove';
+    removeBtn.classList.add('btn-danger');
+    removeBtn.addEventListener('click', () => {
+      cifasOptions = cifasOptions.filter(item => item !== option);
+      cifasChecks = cifasChecks.map(value => (value === option ? '' : value));
+      renderCifasOptions();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(removeBtn);
+
+    managerItem.appendChild(actions);
+    cifasOptionManager.appendChild(managerItem);
+  });
+
+  renderCifasChecks();
+}
+
+function renderMacros() {
+  macroChipGrid.innerHTML = '';
+  macroManager.innerHTML = '';
+
+  macroOptions.forEach(macro => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'macro-chip';
+    chip.textContent = macro;
+    chip.addEventListener('click', () => {
+      insertMacroIntoActiveField(macro);
+    });
+    macroChipGrid.appendChild(chip);
+
+    const managerItem = document.createElement('div');
+    managerItem.className = 'risk-factor-item';
+
+    const macroInput = document.createElement('input');
+    macroInput.type = 'text';
+    macroInput.value = macro;
+    macroInput.className = 'entry-text';
+    macroInput.setAttribute('aria-label', `Edit macro ${macro}`);
+    managerItem.appendChild(macroInput);
+
+    const actions = document.createElement('div');
+    actions.className = 'settings-item-actions';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', () => {
+      const nextValue = macroInput.value.trim();
+      if (!nextValue) {
+        macroInput.value = macro;
+        return;
+      }
+      if (nextValue !== macro && macroOptions.includes(nextValue)) {
+        macroInput.value = macro;
+        return;
+      }
+      macroOptions = macroOptions.map(item => (item === macro ? nextValue : item));
+      renderMacros();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(saveBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove';
+    removeBtn.classList.add('btn-danger');
+    removeBtn.addEventListener('click', () => {
+      macroOptions = macroOptions.filter(item => item !== macro);
+      renderMacros();
+      if (autoGenerate.checked) buildOutput();
+      else saveState();
+    });
+    actions.appendChild(removeBtn);
+
+    managerItem.appendChild(actions);
+    macroManager.appendChild(managerItem);
+  });
+}
+
+function insertMacroIntoActiveField(macroText) {
+  if (!(lastFocusedTextField instanceof HTMLTextAreaElement) && !(lastFocusedTextField instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const field = lastFocusedTextField;
+  const start = field.selectionStart ?? field.value.length;
+  const end = field.selectionEnd ?? field.value.length;
+  const before = field.value.slice(0, start);
+  const after = field.value.slice(end);
+  const separator = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+  field.value = `${before}${separator}${macroText}${after}`;
+  const cursorPos = (before + separator + macroText).length;
+  field.setSelectionRange(cursorPos, cursorPos);
+  field.focus();
+
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+}
+
+function escapeHtml(str) {
+  return str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+toggleSettingsBtn.addEventListener('click', () => {
+  setSettingsModalOpen(true);
+});
+
+closeSettingsBtn.addEventListener('click', () => {
+  setSettingsModalOpen(false);
+});
+
+settingsModal.addEventListener('click', event => {
+  if (event.target === settingsModal) {
+    setSettingsModalOpen(false);
+  }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && settingsModal.classList.contains('open')) {
+    setSettingsModalOpen(false);
+  }
+});
+
+autoGenerate.addEventListener('change', () => {
+  syncGenerateButtonVisibility();
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+[...document.querySelectorAll('input, textarea, select')].forEach(el => {
+  if (el === autoGenerate) return;
+
+  el.addEventListener('input', () => {
+    if (autoGenerate.checked) buildOutput();
+    else saveState();
+  });
+
+  el.addEventListener('change', () => {
+    if (autoGenerate.checked) buildOutput();
+    else saveState();
+  });
+});
+
+[...document.querySelectorAll('textarea, input[type="text"]')].forEach(el => {
+  el.addEventListener('focus', () => {
+    lastFocusedTextField = el;
+    positionMacroToolbar();
+  });
+});
+
+toggleMacrosBtn.addEventListener('click', () => {
+  setMacroToolbarOpen(!isMacroToolbarOpen);
+});
+
+window.addEventListener('resize', positionMacroToolbar);
+window.addEventListener('scroll', positionMacroToolbar, true);
+
+addRiskFactorBtn.addEventListener('click', () => {
+  const value = newRiskFactor.value.trim();
+  if (!value) return;
+  if (riskFactorOptions.includes(value)) {
+    newRiskFactor.value = '';
+    return;
+  }
+  riskFactorOptions.push(value);
+  newRiskFactor.value = '';
+  renderRiskFactors();
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+addCifasOptionBtn.addEventListener('click', () => {
+  const value = newCifasOption.value.trim();
+  if (!value) return;
+  if (cifasOptions.includes(value)) {
+    newCifasOption.value = '';
+    return;
+  }
+  cifasOptions.push(value);
+  newCifasOption.value = '';
+  renderCifasOptions(value);
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+addMacroBtn.addEventListener('click', () => {
+  const value = newMacro.value.trim();
+  if (!value) return;
+  if (macroOptions.includes(value)) {
+    newMacro.value = '';
+    return;
+  }
+  macroOptions.push(value);
+  newMacro.value = '';
+  renderMacros();
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+newRiskFactor.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addRiskFactorBtn.click();
+  }
+});
+
+newCifasOption.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addCifasOptionBtn.click();
+  }
+});
+
+newMacro.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addMacroBtn.click();
+  }
+});
+
+themeMode.addEventListener('change', () => {
+  applyTheme(themeMode.value);
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+[accentColor, bgColor, panelColor, textboxColor, textColor].forEach(input => {
+  input.addEventListener('input', () => {
+    syncCustomThemeFromInputs();
+    if (themeMode.value !== 'custom') themeMode.value = 'custom';
+    applyTheme('custom');
+    if (autoGenerate.checked) buildOutput();
+    else saveState();
+  });
+});
+
+generateBtn.addEventListener('click', buildOutput);
+copyBtn.addEventListener('click', async () => {
+  buildOutput();
+  try {
+    await navigator.clipboard.writeText(output.value);
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => (copyBtn.textContent = 'Copy Output'), 1200);
+  } catch {
+    output.select();
+    document.execCommand('copy');
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  if (!confirm('Clear all fields and reset the preview?')) return;
+
+  document.getElementById('decision').value = clearFormTextDefaults.decision;
+  document.getElementById('riskLevel').value = clearFormTextDefaults.riskLevel;
+  document.getElementById('summary').value = clearFormTextDefaults.summary;
+  document.getElementById('evidence').value = clearFormTextDefaults.evidence;
+  document.getElementById('actionTaken').value = clearFormTextDefaults.actionTaken;
+  document.getElementById('rationaleNotes').value = clearFormTextDefaults.rationaleNotes;
+  cifasChecks = Array.isArray(clearFormTextDefaults.cifasChecks) && clearFormTextDefaults.cifasChecks.length
+    ? [...clearFormTextDefaults.cifasChecks]
+    : [''];
+  renderCifasChecks();
+  document.getElementById('factaCrsCheck').value = clearFormTextDefaults.factaCrsCheck;
+  const enabledRiskFactors = new Set(clearFormTextDefaults.enabledRiskFactors || []);
+  [...document.querySelectorAll('#riskFactors input[type="checkbox"]')].forEach(cb => {
+    cb.checked = enabledRiskFactors.has(cb.value);
+  });
+
+  output.value = '';
+  renderOutputPreview('');
+  if (autoGenerate.checked) buildOutput();
+  saveState();
+});
+
+editDefaultsBtn.addEventListener('click', () => {
+  clearFormTextDefaults = {
+    decision: document.getElementById('decision').value,
+    riskLevel: document.getElementById('riskLevel').value,
+    summary: document.getElementById('summary').value,
+    evidence: document.getElementById('evidence').value,
+    actionTaken: document.getElementById('actionTaken').value,
+    rationaleNotes: document.getElementById('rationaleNotes').value,
+    cifasChecks: [...cifasChecks],
+    factaCrsCheck: document.getElementById('factaCrsCheck').value,
+    enabledRiskFactors: getCheckedValues('riskFactors')
+  };
+  editDefaultsBtn.textContent = '✓';
+  setTimeout(() => {
+    editDefaultsBtn.textContent = '💾';
+  }, 1000);
+  saveState();
+});
+
+hardResetBtn.addEventListener('click', () => {
+  if (!confirm('Hard reset all customisations and defaults back to original values?')) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  riskFactorOptions = [...defaultRiskFactors];
+  cifasOptions = [...defaultCifasOptions];
+  macroOptions = [...defaultMacros];
+  cifasChecks = [''];
+  clearFormTextDefaults = { ...defaultClearFormText };
+
+  renderRiskFactors();
+  renderCifasOptions();
+  renderMacros();
+
+  [...document.querySelectorAll('input, textarea, select')].forEach(el => {
+    if (el.type === 'checkbox') el.checked = false;
+    else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+
+  [...document.querySelectorAll('#riskFactors input[type="checkbox"]')].forEach(cb => {
+    cb.checked = true;
+  });
+
+  useMarkdownHeadings.checked = true;
+  autoGenerate.checked = true;
+  syncGenerateButtonVisibility();
+
+  customTheme = {
+    accent: presetThemes.light.accent,
+    bg: presetThemes.light.bg,
+    panel: presetThemes.light.panel,
+    fieldBg: presetThemes.light.fieldBg,
+    text: presetThemes.light.text
+  };
+  applyTheme('light');
+
+  output.value = '';
+  renderOutputPreview('');
+  saveState();
+});
+
+riskFactorsContainer.addEventListener('change', () => {
+  if (autoGenerate.checked) buildOutput();
+  else saveState();
+});
+
+renderRiskFactors();
+renderCifasOptions();
+renderMacros();
+applyTheme('light');
+restoreState();
+syncGenerateButtonVisibility();
+renderOutputPreview(output.value);
+if (autoGenerate.checked) buildOutput();
+
+  
+}
+</script></body></html>

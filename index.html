@@ -1272,7 +1272,7 @@ body { overflow:auto; }
               <option value="!!Decline!!">Decline</option>
               <option value="Escalate">Escalate</option>
               <option value="Refer">Refer</option>
-              <option value="!!!Rebsubmission!!!">Resub</option>
+              <option value="!!!Resubmission!!!">Resub</option>
             </select>
           </label>
 
@@ -1293,8 +1293,8 @@ body { overflow:auto; }
         </label>
 
         <label>
-          <span>Do you understand the customer's nature of business, is it plausible and have you addressed associated risk factors</span>
-          <textarea id="evidence" rows="4" placeholder="Detail how you've validated the business activies as well as how you've addressed risk factors (e.g. overseas jurisdictions, cash, etc.) or discrepancies identifed during the review. Document an understanding of the initial and ongoing sources of funds/sources of wealth, and where required, describe the verifications steps you have taken."></textarea>
+          <span>Do you understand the customer's nature of business? Is it plausible, and have you addressed associated risk factors?</span>
+          <textarea id="evidence" rows="4" placeholder="Detail how you've validated the business activities as well as how you've addressed risk factors (e.g. overseas jurisdictions, cash, etc.) or discrepancies identified during the review. Document an understanding of the initial and ongoing sources of funds/sources of wealth, and where required, describe the verification steps you have taken."></textarea>
         </label>
 
         <div>
@@ -1306,7 +1306,7 @@ body { overflow:auto; }
             <label class="pill"><input type="checkbox" value="Document quality concerns" /> Document concerns</label>
             <label class="pill"><input type="checkbox" value="Unusual account purpose" /> Unusual purpose</label>
             <label class="pill"><input type="checkbox" value="Source of funds concern" /> SOF concern</label>
-            <label class="pill"><input type="checkbox" value="High Risk Jurisdiction involvement" /> HRJ involvement</label>
+            <label class="pill"><input type="checkbox" value="High-risk jurisdiction involvement" /> HRJ involvement</label>
           </div>
         </div>
 
@@ -1323,8 +1323,8 @@ body { overflow:auto; }
         <div id="cifasChecks" class="cifas-checks"></div>
 
         <label>
-          <span>FACTA/CRS Check</span>
-          <textarea id="factaCrsCheck" rows="3" placeholder="Add FACTA/CRS check details to append at the end of the rationale."></textarea>
+          <span>FATCA/CRS Check</span>
+          <textarea id="fatcaCrsCheck" rows="3" placeholder="Add FATCA/CRS check details to append at the end of the rationale."></textarea>
         </label>
       </section>
     </main>
@@ -1541,7 +1541,7 @@ body { overflow:auto; }
         <h2>Today’s Queue Plan</h2>
         <button class="btn small" value="close">Close</button>
       </div>
-      <p class="subtle">The default shift is 11:00–19:30, beginning with a 15-minute team briefing. A segment runs until the next one begins. Live active queue changes are tracked separately and do not edit the schedule.</p>
+      <p class="subtle">The default shift is 11:00–19:30, beginning with a 15-minute team briefing. A segment runs until the next one begins.</p>
       <div class="schedule-toolbar">
         <div class="field">
           <label for="shiftStart">Shift starts</label>
@@ -2096,10 +2096,10 @@ body { overflow:auto; }
           const adherence = planned ? (planned.id === entry.queueId ? "matched plan" : `planned ${planned.name}`) : "outside plan";
           return `${formatClock(entry.at)} · ${escapeHtml(queue?.name || "Missing queue")} · ${escapeHtml(adherence)}`;
         }).join("<br>")}</div>`
-        : `<div style="margin-top: 10px;">No manual queue changes logged yet. Changing the dropdown will start the adherence log without editing today’s plan.</div>`;
+        : `<div style="margin-top: 10px;">No manual queue changes were logged; the schedule remains the source of truth.</div>`;
 
       if (!activeQueue) {
-        els.liveTrackerDetails.innerHTML = `No productive live queue selected. Pick one in the Live active queue dropdown to start tracking actual work.${switchHtml}`;
+        els.liveTrackerDetails.innerHTML = `No productive activity is currently scheduled.${switchHtml}`;
         return;
       }
 
@@ -2682,12 +2682,12 @@ const defaultRiskFactors = [
   'Document quality concerns',
   'Unusual account purpose',
   'Source of funds concern',
-  'High Risk Jurisdiction involvement'
+  'High-risk jurisdiction involvement'
 ];
 
 const defaultCifasOptions = ['CIFAS checked', 'No check required', 'N/A'];
 const defaultMacros = [
-  'Legitimacy of business plausible.',
+  'The legitimacy of the business is plausible.',
   'Further comfort gained from supporting evidence.'
 ];
 
@@ -2779,14 +2779,14 @@ const defaultClearFormText = {
   actionTaken: '',
   rationaleNotes: '',
   cifasChecks: [''],
-  factaCrsCheck: '',
+  fatcaCrsCheck: '',
   enabledRiskFactors: [...defaultRiskFactors]
 };
 
 let clearFormTextDefaults = { ...defaultClearFormText };
 
 const formIds = [
-  'decision', 'riskLevel', 'summary', 'evidence', 'actionTaken', 'rationaleNotes', 'factaCrsCheck',
+  'decision', 'riskLevel', 'summary', 'evidence', 'actionTaken', 'rationaleNotes', 'fatcaCrsCheck',
   'includeEmptySections', 'useMarkdownHeadings', 'autoGenerate',
   'themeMode', 'accentColor', 'bgColor', 'panelColor', 'textboxColor', 'textColor'
 ];
@@ -2923,12 +2923,12 @@ function buildOutput() {
   const additionalLines = [
     document.getElementById('rationaleNotes').value && `**Links:** ${document.getElementById('rationaleNotes').value}`,
     ...cifasChecks.filter(Boolean).map(value => `**CIFAS Check:** ${value}`),
-    document.getElementById('factaCrsCheck').value && `**FACTA/CRS Check:** ${document.getElementById('factaCrsCheck').value}`,
+    document.getElementById('fatcaCrsCheck').value && `**FATCA/CRS Check:** ${document.getElementById('fatcaCrsCheck').value}`,
   ];
 
   const sections = [
     buildSection('Summary of Decision', summaryLines),
-    !isDeclineDecision && buildSection('Do you understand the customers nature of business, is it plausible and have you addressed associated risk factors?', businessUnderstandingLines),
+    !isDeclineDecision && buildSection("Do you understand the customer's nature of business? Is it plausible, and have you addressed associated risk factors?", businessUnderstandingLines),
     buildSection('Links/CIFAS', additionalLines)
   ].filter(Boolean);
 
@@ -3031,6 +3031,11 @@ function restoreState() {
   if (!raw) return;
   try {
     const state = JSON.parse(raw);
+    // Migrate the misspelled legacy key without discarding locally saved notes.
+    if (!("fatcaCrsCheck" in state) && "factaCrsCheck" in state) state.fatcaCrsCheck = state.factaCrsCheck;
+    if (state.clearFormTextDefaults && !("fatcaCrsCheck" in state.clearFormTextDefaults) && "factaCrsCheck" in state.clearFormTextDefaults) {
+      state.clearFormTextDefaults.fatcaCrsCheck = state.clearFormTextDefaults.factaCrsCheck;
+    }
     formIds.forEach(id => {
       const el = document.getElementById(id);
       if (!(id in state)) return;
@@ -3507,7 +3512,7 @@ clearBtn.addEventListener('click', () => {
     ? [...clearFormTextDefaults.cifasChecks]
     : [''];
   renderCifasChecks();
-  document.getElementById('factaCrsCheck').value = clearFormTextDefaults.factaCrsCheck;
+  document.getElementById('fatcaCrsCheck').value = clearFormTextDefaults.fatcaCrsCheck;
   const enabledRiskFactors = new Set(clearFormTextDefaults.enabledRiskFactors || []);
   [...document.querySelectorAll('#riskFactors input[type="checkbox"]')].forEach(cb => {
     cb.checked = enabledRiskFactors.has(cb.value);
@@ -3528,7 +3533,7 @@ editDefaultsBtn.addEventListener('click', () => {
     actionTaken: document.getElementById('actionTaken').value,
     rationaleNotes: document.getElementById('rationaleNotes').value,
     cifasChecks: [...cifasChecks],
-    factaCrsCheck: document.getElementById('factaCrsCheck').value,
+    fatcaCrsCheck: document.getElementById('fatcaCrsCheck').value,
     enabledRiskFactors: getCheckedValues('riskFactors')
   };
   editDefaultsBtn.textContent = 'Defaults saved';

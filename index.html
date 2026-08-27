@@ -1566,7 +1566,7 @@ body { overflow:auto; }
     const STORAGE_KEY = "queuePerformanceDashboard.v2";
     const NON_PRODUCTIVE_NAME = "Non-productive";
     const OFF_QUEUE_NAME = "Off queue";
-    const TEAM_BRIEFING_NAME = "Team briefing";
+    const TEAM_BRIEFING_NAME = "Team briefings";
     const TEAM_BRIEFING_ID = crypto.randomUUID();
     const BASE_TITLE = "Queue Performance Dashboard";
     const DEFAULT_SHIFT_START = "11:00";
@@ -1577,7 +1577,7 @@ body { overflow:auto; }
       queues: [
         { id: crypto.randomUUID(), name: NON_PRODUCTIVE_NAME, rate: 0, color: "#71717a", locked: true },
         { id: crypto.randomUUID(), name: OFF_QUEUE_NAME, rate: 0, color: "#f59e0b", locked: true },
-        { id: TEAM_BRIEFING_ID, name: TEAM_BRIEFING_NAME, rate: 0, color: "#0ea5e9", locked: true },
+        { id: TEAM_BRIEFING_ID, name: TEAM_BRIEFING_NAME, rate: 0, color: "#d0bb6c", locked: true },
         { id: crypto.randomUUID(), name: "Startup", rate: 2.29, color: "#ba3aff" },
         { id: crypto.randomUUID(), name: "Established", rate: 2.29, color: "#2df24d" },
         { id: crypto.randomUUID(), name: "Resubmissions", rate: 2.63, color: "#fb2832" },

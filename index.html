@@ -1198,12 +1198,23 @@ body { overflow:auto; }
 #rationaleWorkspace button.danger { color:#fecdd3; border-color:rgba(251,113,133,.45); }
 .rationale-saved { color:var(--success); font-size:.8rem; font-weight:700; }
 @media(max-width:980px){.rationale-shell{grid-template-columns:1fr}.rationale-output-panel{position:static}.workflow-heading{align-items:start;flex-direction:column}.workflow-step{white-space:normal}}
+.timer-rail { position:sticky; top:10px; z-index:20; display:grid; grid-template-columns:minmax(260px,.7fr) minmax(420px,1.3fr); gap:20px; align-items:center; padding:18px 20px; border:1px solid rgba(94,234,212,.28); border-radius:var(--radius); background:linear-gradient(110deg,rgba(94,234,212,.12),rgba(255,255,255,.025)); box-shadow:var(--shadow); }
+.timer-primary { min-width:0; }
+.timer-rail .timer-display { margin:2px 0 10px; font-size:clamp(2.7rem,6vw,4.7rem); text-align:left; }
+.timer-rail .timer-caption { text-align:left; }
+.timer-rail .timer-progress { margin-top:0; }
+.timer-context { display:grid; gap:14px; }
+.timer-queue-field { max-width:none; }
+.timer-rail .tracker-facts { margin:0; }
+.rationale-workspace { margin-top:18px; padding-top:0; border-top:0; }
+.workflow-heading { margin-bottom:12px; }
+@media(max-width:760px){.timer-rail{grid-template-columns:1fr}.timer-rail .timer-display{text-align:center}.timer-rail .timer-caption{text-align:center}}
 @media(max-width:600px){#rationaleWorkspace .grid.two,#rationaleWorkspace .output-actions{grid-template-columns:1fr}}
 </style></head><body>
   <main class="app-shell">
     <header class="topbar">
       <section class="title-block">
-        <h1>Review Flow</h1><p>Plan the day, pace each review, build its rationale, and capture the outcome in one continuous workflow.</p>
+        <h1>Review Flow</h1><p>Keep the live review target and rationale in one focused workspace.</p>
       </section>
       <section class="top-actions">
         <button class="btn" id="menuBtn">Menu</button>
@@ -1211,83 +1222,27 @@ body { overflow:auto; }
           <button class="btn" id="settingsBtn">Queue Settings</button>
           <button class="btn" id="notificationsBtn">Notifications</button>
           <button class="btn" id="planBtn">Schedule</button>
-          <button class="btn" id="archiveBtn">Archived Days</button>
-          <button class="btn" id="snapshotBtn">Save Current Plan</button>
-          <button class="btn warning" id="endDayBtn">End Day Review</button>
-          <button class="btn" id="completedAppsBtn">Completed Apps</button>
-          <button class="btn" id="detailsBtn">Plan Details</button>
-          <button class="btn" id="exportCsvBtn">Export CSV</button>
-          <button class="btn danger" id="resetBtn">Reset Day</button>
         </div>
       </section>
-    </header><section class="grid">
-  <section class="panel main-panel stack">
-    <div class="tracker-card">
-      <div class="timer-caption" id="timerCaption">Remaining</div>
-      <div class="timer-display" id="timerDisplay">--:--</div>
-      <div class="tracker-facts">
-        <div class="tracker-fact"><span class="tracker-fact-label">ETC</span><span class="tracker-fact-value" id="timerEtc">--:--</span></div>
-        <div class="tracker-fact"><span class="tracker-fact-label">Target</span><span class="tracker-fact-value" id="timerTarget">--:--</span></div>
-        <div class="tracker-fact"><span class="tracker-fact-label">Tracking since</span><span class="tracker-fact-value" id="trackerStartedAt">--:--</span></div>
+    </header><section class="timer-rail" aria-label="Live review timer">
+      <div class="timer-primary">
+        <div class="timer-caption" id="timerCaption">Remaining</div>
+        <div class="timer-display" id="timerDisplay">--:--</div>
+        <div class="timer-progress"><div class="timer-progress-fill" id="timerProgress"></div></div>
       </div>
-      <div class="timer-progress"><div class="timer-progress-fill" id="timerProgress"></div></div>
-    </div>
-
-    <div class="row between">
-      <div class="row row-flex">
-        <div class="field field-max-280">
-          <label for="completionQueue">Queue</label>
-          <select id="completionQueue"></select>
+      <div class="timer-context">
+        <div class="field timer-queue-field"><label for="completionQueue">Current queue</label><select id="completionQueue"></select></div>
+        <div class="tracker-facts">
+          <div class="tracker-fact"><span class="tracker-fact-label">ETC</span><span class="tracker-fact-value" id="timerEtc">--:--</span></div>
+          <div class="tracker-fact"><span class="tracker-fact-label">Target</span><span class="tracker-fact-value" id="timerTarget">--:--</span></div>
+          <div class="tracker-fact"><span class="tracker-fact-label">Tracking since</span><span class="tracker-fact-value" id="trackerStartedAt">--:--</span></div>
         </div>
-        <div class="field field-max-220">
-          <label for="completionUid">App UID</label>
-          <input id="completionUid" placeholder="Enter UID" />
-        </div>
-        <div class="field field-max-220">
-          <label for="completionOutcome">Outcome</label>
-          <select id="completionOutcome">
-            <option value="">Select outcome</option>
-            <option value="Approve">Approve</option>
-            <option value="Resubmit">Resubmit</option>
-            <option value="Decline">Decline</option>
-            <option value="Refer to ORE">Refer to ORE</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <button class="btn success" id="completeAppBtn">App Completed</button>
-      </div>
-    </div>
-
-    <section class="stack">
-      <div class="overview-heading">
-        <h2>Day Overview</h2>
-        <span class="pill expected-total" id="expectedAppsTotal" aria-label="0 apps expected">0</span>
-      </div>
-      <div class="day-timeline" id="dayTimeline"></div>
-      <div class="stats-grid four">
-        <article class="stat">
-          <div class="value" id="productiveHours">0h 0m</div>
-          <div class="label">Productive planned time</div>
-        </article>
-        <article class="stat">
-          <div class="value" id="nonProductiveHours">0h 0m</div>
-          <div class="label">Non-productive planned time</div>
-        </article>
-        <article class="stat">
-          <div class="value" id="completedCount">0</div>
-          <div class="label">Apps completed</div>
-        </article>
       </div>
     </section>
 
-  </section>
-</section>
-
-  
 <section id="rationaleWorkspace" class="rationale-workspace" aria-labelledby="rationaleWorkspaceTitle">
   <div class="workflow-heading">
-    <div><span class="eyebrow">Active review workspace</span><h2 id="rationaleWorkspaceTitle">Build the rationale while the target clock runs</h2><p>The live queue target above measures this review. Generate the rationale, then record the UID and outcome to complete the app and start the next target.</p></div>
-    <div class="workflow-step"><strong>1</strong> Draft <span>→</span> <strong>2</strong> Copy <span>→</span> <strong>3</strong> Complete</div>
+    <div><span class="eyebrow">Current review</span><h2 id="rationaleWorkspaceTitle">Rationale</h2><p>Draft against the live target above. Your work is saved locally as you type.</p></div>
   </div>
 
   <div class="rationale-shell">
@@ -1536,7 +1491,7 @@ body { overflow:auto; }
   <aside class="final-round hidden" id="finalRound" role="dialog" aria-modal="true" aria-labelledby="finalRoundTitle" aria-describedby="finalRoundDetail">
     <div class="final-round-card">
       <div class="final-round-kicker">Final target</div>
-      <div class="final-round-title" id="finalRoundTitle">Final App</div>
+      <div class="final-round-title" id="finalRoundTitle">Final target</div>
       <div class="final-round-queue" id="finalRoundQueue"></div>
       <p class="final-round-detail" id="finalRoundDetail"></p>
       <button class="btn" id="dismissFinalRoundBtn" type="button">Let’s go!</button>
@@ -1545,7 +1500,7 @@ body { overflow:auto; }
   <dialog id="notificationDialog">
     <form method="dialog" class="modal-inner stack">
       <div class="modal-header"><h2>Notifications</h2><button class="btn small" value="close">Close</button></div>
-      <p class="subtle">Get a reminder when a scheduled app target is due. The dashboard must remain open for reminders to run.</p>
+      <p class="subtle">Get a reminder when a review target is due. The dashboard must remain open for reminders to run.</p>
       <section class="panel-soft stack">
         <div id="notificationStatus" class="notification-status subtle"></div>
         <label class="row" style="text-transform: none; letter-spacing: 0;">
@@ -1561,24 +1516,7 @@ body { overflow:auto; }
       </section>
       <p class="footer-note">Local <code>file://</code> pages do not have consistent notification permission support across browsers. If native notifications are unavailable or blocked, the dashboard automatically uses an in-page notification and sound instead. Serving this file from <code>http://localhost</code> gives browser notifications the best chance of working.</p>
     </form>
-  </dialog>  <dialog id="detailsDialog">
-    <form method="dialog" class="modal-inner stack">
-      <div class="modal-header"><h2>Plan Details</h2><button class="btn small" value="close">Close</button></div>
-      <section class="panel-soft stack"><h3>Live Queue Tracker</h3><div id="liveTrackerDetails" class="subtle">Queue changes will appear here.</div></section>
-      <section class="panel-soft stack"><h3>Current Plan Segment</h3><div id="currentSegmentDetails" class="subtle">No matching segment yet.</div></section>
-      <section><h3>Queue Breakdown</h3><div class="table-like" id="breakdownList"></div></section>
-    </form>
-  </dialog>  <dialog id="newDayDialog">
-    <form method="dialog" class="modal-inner stack">
-      <div class="modal-header"><h2>A new day has started</h2></div>
-      <p class="subtle">Export yesterday’s tracking history and start a fresh schedule, or keep the current day open for now.</p>
-      <div class="row">
-        <button class="btn primary" id="newDayExportBtn" type="button">Export CSV &amp; reset</button>
-        <button class="btn" id="newDayResetBtn" type="button">Reset without export</button>
-        <button class="btn" id="newDaySkipBtn" type="button">Skip for now</button>
-      </div>
-    </form>
-  </dialog>  <dialog id="settingsDialog">
+  </dialog>      <dialog id="settingsDialog">
     <form method="dialog" class="modal-inner">
       <div class="modal-header">
         <h2>Queue Settings</h2>
@@ -1604,25 +1542,7 @@ body { overflow:auto; }
   </div>
 </form>
 
-  </dialog>  <dialog id="reviewDialog">
-    <form method="dialog" class="modal-inner">
-      <div class="modal-header">
-        <h2>End Day Review</h2>
-        <button class="btn small" value="close">Close</button>
-      </div>
-      <div class="stack" id="reviewContent"></div>
-      <p class="footer-note">Start plan is captured with “Save Current Plan”. Current plan reflects whatever chaos Resource Planning later inflicted.</p>
-    </form>
-  </dialog>  <dialog id="completionDialog" class="completion-modal">
-    <form method="dialog" class="modal-inner stack">
-      <div class="modal-header">
-        <h2>Completed Apps</h2>
-        <button class="btn small" value="close">Close</button>
-      </div>
-      <p class="subtle">Delete mistaken entries from today’s historical completion log.</p>
-      <div class="log-list single-output" id="completionHistory"></div>
-    </form>
-  </dialog>  <dialog id="planDialog" class="schedule-modal">
+  </dialog>      <dialog id="planDialog" class="schedule-modal">
     <form method="dialog" class="modal-inner stack" id="planForm">
       <div class="modal-header">
         <h2>Today’s Queue Plan</h2>
@@ -1648,15 +1568,7 @@ body { overflow:auto; }
         <div id="segmentList" class="stack"></div>
       </div>
     </form>
-  </dialog>  <dialog id="archiveDialog">
-    <form method="dialog" class="modal-inner stack">
-      <div class="modal-header">
-        <h2>Archived Days</h2>
-        <button class="btn small" value="close">Close</button>
-      </div>
-      <div class="log-list single-output" id="archiveHistory"></div>
-    </form>
-  </dialog>  <script>
+  </dialog>    <script>
 
     const STORAGE_KEY = "queuePerformanceDashboard.v2";
     const NON_PRODUCTIVE_NAME = "Non-productive";
@@ -2286,7 +2198,7 @@ body { overflow:auto; }
       state.lastFinalRoundSegment = segmentKey;
       saveState();
       els.finalRoundQueue.textContent = slot.queue.name;
-      els.finalRoundDetail.textContent = `The final scheduled app for this segment is due by ${formatClock(slot.at.toISOString())}.`;
+      els.finalRoundDetail.textContent = `The final review target for this segment is due by ${formatClock(slot.at.toISOString())}.`;
       els.finalRound.classList.remove("hidden");
       els.dismissFinalRoundBtn.focus();
       clearTimeout(finalRoundTimeout);
@@ -2360,7 +2272,7 @@ body { overflow:auto; }
       const permission = await Notification.requestPermission();
       saveState();
       renderNotificationStatus();
-      if (permission === "granted") sendNotification("Notifications enabled", "Scheduled target reminders are ready.");
+      if (permission === "granted") sendNotification("Notifications enabled", "Target reminders are ready.");
       else showInPageNotification("Fallback enabled", "Browser permission was not granted; in-page reminders will be used.");
     }
 
@@ -2375,7 +2287,7 @@ body { overflow:auto; }
       if (state.lastNotifiedSlot === slotKey) return;
       state.lastNotifiedSlot = slotKey;
       saveState();
-      sendNotification("App target due", `${latest.queue.name} target reached at ${formatClock(latest.at.toISOString())}.`);
+      sendNotification("Review target due", `${latest.queue.name} target reached at ${formatClock(latest.at.toISOString())}.`);
     }
 
     function renderTimer() {
@@ -2420,13 +2332,6 @@ body { overflow:auto; }
       renderQueueOptions();
       renderQueues();
       renderSegments();
-      renderCompletionHistory();
-      renderArchiveHistory();
-      renderStats();
-      renderDayTimeline();
-      renderBreakdown();
-      renderLiveTracker();
-      renderCurrentSegmentDetails();
       renderTimer();
       renderNotificationStatus();
       saveState();
@@ -2491,9 +2396,7 @@ body { overflow:auto; }
       };
       state.completions.push(completion);
 
-      els.completionUid.value = "";
-      if (els.completionOutcome) els.completionOutcome.value = "";
-      logActivity("complete", `Completed app ${uid} (${outcome}) from ${queue.name}.`);
+          logActivity("complete", `Completed app ${uid} (${outcome}) from ${queue.name}.`);
       renderAll();
     }
 
@@ -2728,7 +2631,6 @@ body { overflow:auto; }
     });
     els.menuBtn.addEventListener("click", () => els.topMenuPanel.classList.toggle("hidden"));
     els.planBtn.addEventListener("click", () => els.planDialog.showModal());
-    els.archiveBtn.addEventListener("click", () => els.archiveDialog.showModal());
     els.addQueueBtn.addEventListener("click", addQueue);
     els.addSegmentBtn.addEventListener("click", addSegment);
     els.segmentList.addEventListener("change", event => {
@@ -2798,40 +2700,14 @@ body { overflow:auto; }
     els.planDialog.addEventListener("cancel", event => {
       if (!validateScheduleBeforeClose()) event.preventDefault();
     });
-    els.completeAppBtn.addEventListener("click", completeApp);
     els.completionQueue.addEventListener("change", () => {
       setActiveQueue(els.completionQueue.value, "manual");
       renderAll();
     });
-    els.snapshotBtn.addEventListener("click", saveSnapshot);
-    els.endDayBtn.addEventListener("click", showReview);
-    els.completedAppsBtn.addEventListener("click", () => els.completionDialog.showModal());
-    els.detailsBtn.addEventListener("click", () => els.detailsDialog.showModal());
-    els.exportCsvBtn.addEventListener("click", exportCompletionsCsv);
-    els.resetBtn.addEventListener("click", () => resetDay());
-    els.newDayExportBtn.addEventListener("click", () => {
-      if (state.completions.length || getQueueSwitchRows().length) exportCompletionsCsv();
-      els.newDayDialog.close();
-      resetDay(true, true);
-    });
-    els.newDayResetBtn.addEventListener("click", () => {
-      els.newDayDialog.close();
-      resetDay(true, true);
-    });
-    els.newDaySkipBtn.addEventListener("click", () => {
-      state.dayDate = localDateKey();
-      saveState();
-      els.newDayDialog.close();
-      els.planDialog.showModal();
-    });
 
 
-    els.completionUid.value = "";
-    if (els.completionOutcome) els.completionOutcome.value = "";
     renderAll();
-    checkForNewDay();
     setInterval(() => { renderTimer(); checkDueNotifications(); }, 1000);
-    setInterval(checkForNewDay, 60000);
   
 </script><script>
 {
@@ -3537,7 +3413,7 @@ autoGenerate.addEventListener('change', () => {
   else saveState();
 });
 
-[...document.querySelectorAll('input, textarea, select')].forEach(el => {
+[...document.querySelectorAll('#rationaleWorkspace input, #rationaleWorkspace textarea, #rationaleWorkspace select')].forEach(el => {
   if (el === autoGenerate) return;
 
   el.addEventListener('input', () => {
@@ -3715,7 +3591,7 @@ hardResetBtn.addEventListener('click', () => {
   renderCifasOptions();
   renderMacros();
 
-  [...document.querySelectorAll('input, textarea, select')].forEach(el => {
+  [...document.querySelectorAll('#rationaleWorkspace input, #rationaleWorkspace textarea, #rationaleWorkspace select')].forEach(el => {
     if (el.type === 'checkbox') el.checked = false;
     else if (el.tagName === 'SELECT') el.selectedIndex = 0;
     else el.value = '';

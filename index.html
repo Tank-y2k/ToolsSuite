@@ -1198,6 +1198,12 @@ body { overflow:auto; }
 #rationaleWorkspace button.danger { color:#fecdd3; border-color:rgba(251,113,133,.45); }
 .rationale-saved { color:var(--success); font-size:.8rem; font-weight:700; }
 @media(max-width:980px){.rationale-shell{grid-template-columns:1fr}.rationale-output-panel{position:static}.workflow-heading{align-items:start;flex-direction:column}.workflow-step{white-space:normal}}
+.workspace-menu-btn::after { content:"⌄"; margin-left:4px; color:var(--muted); }
+.menu-panel { min-width:260px; }
+.menu-label { padding:5px 10px 1px; color:var(--muted); font-size:.67rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+.menu-divider { height:1px; margin:4px 6px; background:var(--border); }
+#macroToolbar { position:static !important; inset:auto !important; width:auto; max-width:none; margin:0 0 16px; box-shadow:none; border-color:rgba(94,234,212,.25); }
+.rationale-content { padding-top:20px; }
 .timer-rail { position:sticky; top:10px; z-index:20; display:grid; grid-template-columns:minmax(260px,.7fr) minmax(420px,1.3fr); gap:20px; align-items:center; padding:18px 20px; border:1px solid rgba(94,234,212,.28); border-radius:var(--radius); background:linear-gradient(110deg,rgba(94,234,212,.12),rgba(255,255,255,.025)); box-shadow:var(--shadow); }
 .timer-primary { min-width:0; }
 .timer-rail .timer-display { margin:2px 0 10px; font-size:clamp(2.7rem,6vw,4.7rem); text-align:left; }
@@ -1217,11 +1223,17 @@ body { overflow:auto; }
         <h1>Review Flow</h1><p>Keep the live review target and rationale in one focused workspace.</p>
       </section>
       <section class="top-actions">
-        <button class="btn" id="menuBtn">Menu</button>
-        <div class="menu-panel hidden" id="topMenuPanel">
-          <button class="btn" id="settingsBtn">Queue Settings</button>
-          <button class="btn" id="notificationsBtn">Notifications</button>
-          <button class="btn" id="planBtn">Schedule</button>
+        <button class="btn workspace-menu-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false">Workspace</button>
+        <div class="menu-panel hidden" id="topMenuPanel" aria-label="Workspace controls">
+          <span class="menu-label">Timer</span>
+          <button class="btn" id="planBtn">Daily schedule</button>
+          <button class="btn" id="settingsBtn">Queues &amp; targets</button>
+          <button class="btn" id="notificationsBtn">Target reminders</button>
+          <span class="menu-divider"></span>
+          <span class="menu-label">Rationale</span>
+          <button class="btn" id="toggleMacrosBtn" type="button">Writing macros</button>
+          <button class="btn" id="toggleSettingsBtn" type="button">Rationale preferences</button>
+          <button class="btn" id="editDefaultsBtn" type="button">Save rationale defaults</button>
         </div>
       </section>
     </header><section class="timer-rail" aria-label="Live review timer">
@@ -1231,7 +1243,7 @@ body { overflow:auto; }
         <div class="timer-progress"><div class="timer-progress-fill" id="timerProgress"></div></div>
       </div>
       <div class="timer-context">
-        <div class="field timer-queue-field"><label for="completionQueue">Current queue</label><select id="completionQueue"></select></div>
+        <div class="field timer-queue-field"><label for="activeQueue">Current queue</label><select id="activeQueue"></select></div>
         <div class="tracker-facts">
           <div class="tracker-fact"><span class="tracker-fact-label">ETC</span><span class="tracker-fact-value" id="timerEtc">--:--</span></div>
           <div class="tracker-fact"><span class="tracker-fact-label">Target</span><span class="tracker-fact-value" id="timerTarget">--:--</span></div>
@@ -1248,20 +1260,6 @@ body { overflow:auto; }
   <div class="rationale-shell">
     <main class="rationale-content">
       <section>
-        <div class="panel-header split">
-          <div>
-            <h1>Rationale <span>Builder</span></h1>
-            <p class="subtitle">Structured notes builder focused on rationale output.</p>
-            <h2>Rationale</h2>
-            <p>Build the main decision summary with consistent structure.</p>
-          </div>
-          <div class="header-actions">
-            <button id="toggleMacrosBtn" type="button" class="icon-btn" title="Toggle custom macros" aria-label="Toggle custom macros">🧩</button>
-            <button id="toggleSettingsBtn" type="button" class="icon-btn" title="Open settings" aria-label="Open settings">⚙️</button>
-            <button id="editDefaultsBtn" type="button" class="icon-btn" title="Save current rationale values as Clear Form defaults" aria-label="Save current rationale values as Clear Form defaults">💾</button>
-          </div>
-        </div>
-
         <div id="macroToolbar" class="macro-toolbar hidden">
           <p class="macro-toolbar-title">Custom Macros (click to insert into the active text box)</p>
           <div id="macroChipGrid" class="macro-chip-grid"></div>
@@ -1352,8 +1350,8 @@ body { overflow:auto; }
     <section class="settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
       <div class="modal-header">
         <div>
-          <h2 id="settingsModalTitle">Settings</h2>
-          <p>Control layout behaviour and manage risk factors.</p>
+          <h2 id="settingsModalTitle">Rationale preferences</h2>
+          <p>Formatting, appearance, reusable content, and form defaults.</p>
         </div>
         <button id="closeSettingsBtn" type="button" class="icon-btn" title="Close settings" aria-label="Close settings">✕</button>
       </div>
@@ -1668,7 +1666,7 @@ body { overflow:auto; }
       timerEtc: document.getElementById("timerEtc"),
       timerTarget: document.getElementById("timerTarget"),
       timerProgress: document.getElementById("timerProgress"),
-      completionQueue: document.getElementById("completionQueue"),
+      activeQueue: document.getElementById("activeQueue"),
       completionUid: document.getElementById("completionUid"),
       completionOutcome: document.getElementById("completionOutcome"),
       completeAppBtn: document.getElementById("completeAppBtn"),
@@ -1947,7 +1945,7 @@ body { overflow:auto; }
         .map(queue => `<option value="${queue.id}">${escapeHtml(queue.name)}</option>`)
         .join("");
 
-      els.completionQueue.innerHTML = `
+      els.activeQueue.innerHTML = `
         <optgroup label="Productive queues">${renderOptions(productiveQueues)}</optgroup>
         <optgroup label="Non-productive / off queue">${renderOptions(nonProductiveQueues)}</optgroup>
       `;
@@ -1955,9 +1953,9 @@ body { overflow:auto; }
       const activeQueue = getActiveQueue();
       const fallbackQueue = productiveQueues[0] || nonProductiveQueues[0];
       if (activeQueue) {
-        els.completionQueue.value = activeQueue.id;
+        els.activeQueue.value = activeQueue.id;
       } else if (fallbackQueue) {
-        els.completionQueue.value = fallbackQueue.id;
+        els.activeQueue.value = fallbackQueue.id;
       }
     }
 
@@ -2374,7 +2372,7 @@ body { overflow:auto; }
     }
 
     function completeApp() {
-      const queueId = els.completionQueue.value;
+      const queueId = els.activeQueue.value;
       const uid = els.completionUid.value.trim();
       const outcome = els.completionOutcome?.value?.trim() || "";
       const queue = getQueue(queueId);
@@ -2553,6 +2551,7 @@ body { overflow:auto; }
     document.addEventListener("click", event => {
       if (!els.topMenuPanel.contains(event.target) && event.target !== els.menuBtn) {
         els.topMenuPanel.classList.add("hidden");
+        els.menuBtn.setAttribute("aria-expanded", "false");
       }
       const editQueueId = event.target.dataset.editQueue;
       const deleteQueueId = event.target.dataset.deleteQueue;
@@ -2629,7 +2628,15 @@ body { overflow:auto; }
       saveState();
       if (state.notificationSound) playNotificationSound();
     });
-    els.menuBtn.addEventListener("click", () => els.topMenuPanel.classList.toggle("hidden"));
+    els.menuBtn.addEventListener("click", () => {
+      const isOpen = els.topMenuPanel.classList.toggle("hidden") === false;
+      els.menuBtn.setAttribute("aria-expanded", String(isOpen));
+    });
+    els.topMenuPanel.addEventListener("click", event => {
+      if (!event.target.closest("button")) return;
+      els.topMenuPanel.classList.add("hidden");
+      els.menuBtn.setAttribute("aria-expanded", "false");
+    });
     els.planBtn.addEventListener("click", () => els.planDialog.showModal());
     els.addQueueBtn.addEventListener("click", addQueue);
     els.addSegmentBtn.addEventListener("click", addSegment);
@@ -2700,8 +2707,8 @@ body { overflow:auto; }
     els.planDialog.addEventListener("cancel", event => {
       if (!validateScheduleBeforeClose()) event.preventDefault();
     });
-    els.completionQueue.addEventListener("change", () => {
-      setActiveQueue(els.completionQueue.value, "manual");
+    els.activeQueue.addEventListener("change", () => {
+      setActiveQueue(els.activeQueue.value, "manual");
       renderAll();
     });
 
@@ -3570,9 +3577,9 @@ editDefaultsBtn.addEventListener('click', () => {
     factaCrsCheck: document.getElementById('factaCrsCheck').value,
     enabledRiskFactors: getCheckedValues('riskFactors')
   };
-  editDefaultsBtn.textContent = '✓';
+  editDefaultsBtn.textContent = 'Defaults saved';
   setTimeout(() => {
-    editDefaultsBtn.textContent = '💾';
+    editDefaultsBtn.textContent = 'Save rationale defaults';
   }, 1000);
   saveState();
 });
